@@ -7,7 +7,7 @@ public:
         // 创建状态栏
         CreateStatusBar(1);
         SetStatusText("Welcome to wxWidgets!");
-
+        //
         // 创建面板
         wxPanel* panel = new wxPanel(this);
         panel->SetBackgroundColour(*wxLIGHT_GREY);

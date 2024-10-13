@@ -2,19 +2,36 @@
 #include <wx/toolbar.h>     // 包含工具栏的相关功能
 #include <wx/filedlg.h>     // 包含文件对话框的功能
 #include <wx/image.h>       // 包含图像处理的功能
+#include <wx/artprov.h>     // 包含工具栏图标的功能
 
 // 定义主框架类 MyFrame，继承自 wxFrame
 class MyFrame : public wxFrame {
 public:
     MyFrame()  // 构造函数
-        : wxFrame(nullptr, wxID_ANY, "My wxFrame Example") { // 初始化父类 wxFrame
-        // 创建状态栏
-        CreateStatusBar(1);  // 创建状态栏，显示一行
-        SetStatusText("Welcome to wxWidgets!");  // 设置状态栏文本
+        : wxFrame(nullptr, wxID_ANY, "EDA Example") { // 初始化父类 wxFrame
 
         // 创建面板
         wxPanel* panel = new wxPanel(this);  // 创建面板，作为主窗口的子窗口
         panel->SetBackgroundColour(*wxLIGHT_GREY);  // 设置面板背景颜色
+
+        // 创建水平布局管理器
+        wxBoxSizer* hbox = new wxBoxSizer(wxHORIZONTAL);
+
+        // 创建子面板
+        wxPanel* subPanel = new wxPanel(panel, wxID_ANY);
+        subPanel->SetBackgroundColour(*wxLIGHT_GREY);
+        hbox->Add(subPanel, 2, wxEXPAND | wxALL, 10);
+
+        // 创建画板
+        wxPanel* drawPanel = new wxPanel(panel, wxID_ANY);
+        drawPanel->SetBackgroundColour(*wxWHITE);
+        hbox->Add(drawPanel, 8, wxEXPAND | wxALL, 10);
+		//设置水平布局管理器
+		panel->SetSizer(hbox);
+
+        // 创建状态栏
+        CreateStatusBar(1);  // 创建状态栏，显示一行
+        SetStatusText("This is a model");  // 设置状态栏文本
 
         // 创建菜单
         wxMenuBar* menuBar = new wxMenuBar;  // 创建菜单栏
@@ -34,39 +51,45 @@ public:
 
         SetMenuBar(menuBar);  // 设置菜单栏
 
-        // 绑定菜单事件到相应的处理函数
-        Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);  // 绑定退出事件
-        Bind(wxEVT_MENU, &MyFrame::OnAbout, this, wxID_ABOUT);  // 绑定关于事件
-        Bind(wxEVT_MENU, &MyFrame::OnNew, this, wxID_NEW);  // 绑定新建文件事件
-        Bind(wxEVT_MENU, &MyFrame::OnOpen, this, wxID_OPEN);  // 绑定打开文件事件
-        Bind(wxEVT_MENU, &MyFrame::OnSave, this, wxID_SAVE);  // 绑定保存文件事件
-
-        // 注册图像处理程序（支持 PNG 格式）
-        wxImage::AddHandler(new wxPNGHandler());
-
-        // 创建按钮以打开子窗口
-        wxButton* button = new wxButton(panel, wxID_ANY, "Open Child Window", wxPoint(10, 10));
-        // wxBitmap myBitmap("image/a.png", wxBITMAP_TYPE_PNG); // 可选：设置按钮图标
-        // button->SetBitmap(myBitmap);
-        // button->SetBitmapMargins(5, 5);
-        button->Bind(wxEVT_BUTTON, &MyFrame::OnOpenChildWindow, this);  // 绑定按钮点击事件
-
         // 设置窗口大小并显示
         SetSize(800, 600);
         Show(true);  // 显示窗口
 
         // 创建水平工具栏
         wxToolBar* toolbar = CreateToolBar(wxTB_HORIZONTAL | wxTB_TEXT);
-        // 向工具栏添加工具
-        toolbar->AddTool(wxID_NEW, "New", wxNullBitmap, "Create a new file");
-        toolbar->AddTool(wxID_OPEN, "Open", wxNullBitmap, "Open a file");
-        toolbar->AddTool(wxID_SAVE, "Save", wxNullBitmap, "Save the file");
-        toolbar->Realize();  // 实现工具栏
+		// 添加工具栏项
+		auto toolNew = toolbar->AddTool(wxID_NEW, "New", wxArtProvider::GetBitmap(wxART_NEW));
+		auto toolOpen = toolbar->AddTool(wxID_OPEN, "Open", wxArtProvider::GetBitmap(wxART_FILE_OPEN));
+		auto toolSave = toolbar->AddTool(wxID_SAVE, "Save", wxArtProvider::GetBitmap(wxART_FILE_SAVE));
 
-        // 绑定工具栏点击事件
-        Bind(wxEVT_TOOL, &MyFrame::OnToolClicked, this, wxID_NEW);
-        Bind(wxEVT_TOOL, &MyFrame::OnToolClicked, this, wxID_OPEN);
-        Bind(wxEVT_TOOL, &MyFrame::OnToolClicked, this, wxID_SAVE);
+        //实现工具栏
+		toolbar->Realize();
+
+        //基于侧面面板创建侧面工具栏
+		wxToolBar* subtoolbar = new wxToolBar(subPanel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTB_VERTICAL | wxNO_BORDER);
+		//添加工具栏项
+		auto subtoolNew = subtoolbar->AddTool(wxID_NEW, "New", wxArtProvider::GetBitmap(wxART_NEW));
+		auto subtoolOpen = subtoolbar->AddTool(wxID_OPEN, "Open", wxArtProvider::GetBitmap(wxART_FILE_OPEN));
+		auto subtoolSave = subtoolbar->AddTool(wxID_SAVE, "Save", wxArtProvider::GetBitmap(wxART_FILE_SAVE));
+
+
+        // 实现工具栏
+        subtoolbar->Realize();  
+        // 设置工具栏大小和位置，使其填满子面板
+        subtoolbar->SetSize(subPanel->GetClientSize());
+        subtoolbar->SetPosition(wxPoint(0, 0));
+        // 绑定子面板大小变化事件，以便在子面板大小变化时调整工具栏大小
+        subPanel->Bind(wxEVT_SIZE, [subtoolbar](wxSizeEvent& event) {
+            subtoolbar->SetSize(event.GetSize());
+            event.Skip();
+         });
+
+        // 绑定事件到相应的处理函数
+        Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);  // 绑定退出事件
+        Bind(wxEVT_MENU, &MyFrame::OnAbout, this, wxID_ABOUT);  // 绑定关于事件
+        Bind(wxEVT_MENU, &MyFrame::OnNew, this, wxID_NEW);  // 绑定新建文件事件
+        Bind(wxEVT_MENU, &MyFrame::OnOpen, this, wxID_OPEN);  // 绑定打开文件事件
+        Bind(wxEVT_MENU, &MyFrame::OnSave, this, wxID_SAVE);  // 绑定保存文件事件
     }
 
 private:
@@ -105,12 +128,6 @@ private:
         }
     }
 
-    // 打开子窗口事件处理函数
-    void OnOpenChildWindow(wxCommandEvent& event) {
-        wxDialog* childDialog = new wxDialog(this, wxID_ANY, "Child Window", wxDefaultPosition, wxSize(300, 200));  // 创建子窗口
-        childDialog->ShowModal();  // 显示模态对话框
-        childDialog->Destroy();  // 关闭对话框后销毁
-    }
 
     // 工具栏点击事件处理函数
     void OnToolClicked(wxCommandEvent& event) {

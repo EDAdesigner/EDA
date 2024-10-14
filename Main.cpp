@@ -11,8 +11,8 @@ public:
         : wxFrame(nullptr, wxID_ANY, "EDA Example") { // 初始化父类 wxFrame
 
         // 创建面板
-        wxPanel* panel = new wxPanel(this);  // 创建面板，作为主窗口的子窗口
-        panel->SetBackgroundColour(*wxLIGHT_GREY);  // 设置面板背景颜色
+        wxPanel* panel = new wxPanel(this);
+        panel->SetBackgroundColour(*wxLIGHT_GREY);
 
         // 创建水平布局管理器
         wxBoxSizer* hbox = new wxBoxSizer(wxHORIZONTAL);

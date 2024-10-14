@@ -9,7 +9,7 @@ class MyFrame : public wxFrame {
 public:
     MyFrame()  // 构造函数
         : wxFrame(nullptr, wxID_ANY, "EDA Example") { // 初始化父类 wxFrame
-
+        //pppcccyyy
         // 创建面板
         wxPanel* panel = new wxPanel(this);
         panel->SetBackgroundColour(*wxLIGHT_GREY);

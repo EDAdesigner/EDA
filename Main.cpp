@@ -1,9 +1,14 @@
-﻿#include <wx/wx.h>
+﻿
+
+#include <wx/wx.h>
 #include <wx/toolbar.h>
 #include <wx/filedlg.h>
 #include <wx/image.h>
 #include <wx/artprov.h>
+#include <wx/pen.h>
 #include <vector>
+
+
 
 class MyFrame : public wxFrame {
 public:
@@ -47,11 +52,15 @@ public:
         SetSize(800, 600);
         Show(true);
 
+
         wxToolBar* toolbar = CreateToolBar(wxTB_HORIZONTAL | wxTB_TEXT);
-        toolbar->AddTool(wxID_NEW, "New", wxArtProvider::GetBitmap(wxART_NEW));
-        toolbar->AddTool(wxID_OPEN, "Open", wxArtProvider::GetBitmap(wxART_FILE_OPEN));
-        toolbar->AddTool(wxID_SAVE, "Save", wxArtProvider::GetBitmap(wxART_FILE_SAVE));
+        toolbar->AddTool(wxID_NEW, "与", wxArtProvider::GetBitmap(wxART_NEW));
+        toolbar->AddTool(wxID_NEW, "或", wxArtProvider::GetBitmap(wxART_FILE_OPEN));
+        toolbar->AddTool(wxID_NEW, "非", wxArtProvider::GetBitmap(wxART_FILE_SAVE));
+        toolbar->AddTool(wxID_NEW, "删除", wxArtProvider::GetBitmap(wxART_DELETE));
         toolbar->Realize();
+
+
 
         wxToolBar* subtoolbar = new wxToolBar(subPanel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTB_VERTICAL | wxNO_BORDER);
         subtoolbar->AddTool(wxID_NEW, "New", wxArtProvider::GetBitmap(wxART_NEW));
@@ -73,6 +82,8 @@ public:
     }
 
 private:
+
+
     class DrawPanel : public wxPanel {
     public:
         enum class Tool { NONE, AND_GATE, OR_GATE, NOT_GATE, DELETE_GATE }; // 添加 DELETE_GATE
@@ -103,14 +114,20 @@ private:
         }
 
         void DrawGrid(wxDC& dc) {
-            dc.SetPen(*wxLIGHT_GREY_PEN);
+            // 创建点线画笔
+            dc.SetPen(wxPen(wxColour(230, 230, 230)));
+
+            // 绘制垂直线
             for (int i = 0; i < GetSize().GetWidth(); i += 20) {
                 dc.DrawLine(i, 0, i, GetSize().GetHeight());
             }
+
+            // 绘制水平线
             for (int j = 0; j < GetSize().GetHeight(); j += 20) {
                 dc.DrawLine(0, j, GetSize().GetWidth(), j);
             }
         }
+
 
         void DrawComponent(wxDC& dc, Tool tool, const wxPoint& pos) {
             if (tool == Tool::AND_GATE) {
@@ -149,6 +166,7 @@ private:
                 }
             }
         }
+
 
         void OnRightDown(wxMouseEvent& event) {
             // 切换工具
@@ -213,6 +231,7 @@ private:
             wxLogMessage("Saved file: %s", path);
         }
     }
+
 };
 
 class MyApp : public wxApp {

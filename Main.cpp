@@ -9,10 +9,10 @@ class MyFrame : public wxFrame {
 public:
     MyFrame()
         : wxFrame(nullptr, wxID_ANY, "EDA Example") {
-        // 创建状态栏
+
         wxPanel* panel = new wxPanel(this);
         panel->SetBackgroundColour(*wxLIGHT_GREY);
-        // 创建面板
+
         wxBoxSizer* hbox = new wxBoxSizer(wxHORIZONTAL);
 
         wxPanel* subPanel = new wxPanel(panel, wxID_ANY);
@@ -32,7 +32,7 @@ public:
         fileMenu->Append(wxID_OPEN, "&Open\tCtrl-O", "Open a file");
         fileMenu->Append(wxID_SAVE, "&Save\tCtrl-S", "Save the file");
         fileMenu->AppendSeparator();
-        // 创建菜单
+        fileMenu->Append(wxID_EXIT, "&Exit\tCtrl-Q", "Exit the application");
         menuBar->Append(fileMenu, "&File");
 
         wxMenu* helpMenu = new wxMenu;
@@ -122,7 +122,7 @@ private:
                 dc.DrawRectangle(pos.x - 10, pos.y - 10, 20, 20);
             }
         }
-        button->SetBitmap(myBitmap);
+
         void OnLeftDown(wxMouseEvent& event) {
             wxPoint pos = event.GetPosition();
             if (currentTool != Tool::NONE) {
@@ -145,7 +145,7 @@ private:
                 }
             }
         }
-        // 设置大小和显示
+
         void OnRightDown(wxMouseEvent& event) {
             // 切换工具
             if (currentTool == Tool::NONE) {
@@ -163,15 +163,15 @@ private:
             else {
                 currentTool = Tool::NONE; // 切换回无工具
             }
-        // 设置大小和显示
+
             wxString toolName = (currentTool == Tool::AND_GATE) ? "AND Gate" :
                 (currentTool == Tool::OR_GATE) ? "OR Gate" :
                 (currentTool == Tool::NOT_GATE) ? "NOT Gate" :
                 (currentTool == Tool::DELETE_GATE) ? "Delete Gate" : "None";
-        toolbar->AddTool(wxID_NEW, "New", wxNullBitmap, "Create a new file");
+
             wxLogMessage("Current Tool: %s", toolName);
         }
-        toolbar->AddTool(wxID_NEW, "New", wxNullBitmap, "Create a new file");
+
         void OnSize(wxSizeEvent& event) {
             Refresh();
             event.Skip();
@@ -180,31 +180,11 @@ private:
 
 
     DrawPanel* drawPanel;
-        Bind(wxEVT_TOOL, &MyFrame::OnToolClicked, this, wxID_OPEN);
-    }
-        Bind(wxEVT_TOOL, &MyFrame::OnToolClicked, this, wxID_OPEN);
-private:
-    }
 
-private:
     void OnExit(wxCommandEvent& event) {
-        Close(true);  // 关闭窗口
+        Close(true);
     }
 
-    // 关于事件处理函数
-    void OnAbout(wxCommandEvent& event) {
-        wxMessageBox("This is a wxWidgets EDA application.", "About My Application", wxOK | wxICON_INFORMATION);  // 显示关于对话框
-    }
-
-    // 新建文件事件处理函数
-    void OnNew(wxCommandEvent& event) {
-        wxLogMessage("New file created!");  // 日志输出新建文件消息
-    }
-
-    // 打开文件事件处理函数
-    void OnOpen(wxCommandEvent& event) {
-        // 创建文件打开对话框
-        wxFileDialog openFileDialog(this, "Open File", "", "", "All files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
     void OnAbout(wxCommandEvent& event) {
         wxMessageBox("This is a wxWidgets EDA application.", "About My Application", wxOK | wxICON_INFORMATION);
     }
@@ -220,27 +200,23 @@ private:
             wxString path = openFileDialog.GetPath();
             wxLogMessage("Opened file: %s", path);
         }
-        wxDialog* childDialog = new wxDialog(this, wxID_ANY, "Child Window", wxDefaultPosition, wxSize(300, 200));
+    }
 
     void OnSave(wxCommandEvent& event) {
         wxFileDialog saveFileDialog(this, "Save File", "", "", "All files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
         if (saveFileDialog.ShowModal() == wxID_OK) {
             wxString path = saveFileDialog.GetPath();
             wxLogMessage("Saved file: %s", path);
-        case wxID_SAVE:
-            wxLogMessage("Save tool clicked!");
-            break;
-        case wxID_SAVE:
-            wxLogMessage("Save tool clicked!");
-            break;
         }
     }
 };
 
-// 定义应用程序类 MyApp，继承自 wxApp
 class MyApp : public wxApp {
 public:
-wxIMPLEMENT_APP(MyApp);        return true;  // 返回 true 表示初始化成功
+    virtual bool OnInit() {
+        MyFrame* frame = new MyFrame();
+        return true;
+    }
+};
 
-wxIMPLEMENT_APP(MyApp);
 wxIMPLEMENT_APP(MyApp);

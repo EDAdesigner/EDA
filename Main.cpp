@@ -4,7 +4,9 @@
 #include <wx/image.h>
 #include <wx/artprov.h>
 #include <vector>
-
+/*
+这是一个测试
+*/
 // 主框架类，继承自wxFrame
 class MyFrame : public wxFrame {
 public:

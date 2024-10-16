@@ -1,39 +1,37 @@
-﻿
+﻿#include <wx/wx.h>          // 包含 wxWidgets 的核心头文件
+#include <wx/toolbar.h>     // 包含工具栏的相关功能
+#include <wx/filedlg.h>     // 包含文件对话框的功能
+#include <wx/image.h>       // 包含图像处理的功能
+#include <wx/artprov.h>     // 包含工具栏图标的功能
 
-#include <wx/wx.h>
-#include <wx/toolbar.h>
-#include <wx/filedlg.h>
-#include <wx/image.h>
-#include <wx/artprov.h>
-#include <wx/pen.h>
-#include <vector>
-
-
-
+// 定义主框架类 MyFrame，继承自 wxFrame
 class MyFrame : public wxFrame {
 public:
-    MyFrame()
-        : wxFrame(nullptr, wxID_ANY, "My wxFrame Example") {
-        // 创建状态栏
-        CreateStatusBar(1);
-        SetStatusText("Welcome to wxWidgets!");
+    MyFrame()  // 构造函数
+        : wxFrame(nullptr, wxID_ANY, "EDA Example") { // 初始化父类 wxFrame
 
         // 创建面板
-        wxPanel* panel = new wxPanel(this);
-        panel->SetBackgroundColour(*wxLIGHT_GREY);
+        wxPanel* panel = new wxPanel(this);  // 创建面板，作为主窗口的子窗口
+        panel->SetBackgroundColour(*wxLIGHT_GREY);  // 设置面板背景颜色
 
+        // 创建水平布局管理器
         wxBoxSizer* hbox = new wxBoxSizer(wxHORIZONTAL);
 
+        // 创建子面板
         wxPanel* subPanel = new wxPanel(panel, wxID_ANY);
-        subPanel->SetBackgroundColour(*wxLIGHT_GREY);
-        hbox->Add(subPanel, 2, wxEXPAND | wxALL, 10);
+        subPanel->SetBackgroundColour(*wxLIGHT_GREY); // 设置子面板的背景颜色为浅灰色
+        hbox->Add(subPanel, 2, wxEXPAND | wxALL, 10); // 将子面板添加到布局中，比例为2，允许扩展，并添加边距
 
-        drawPanel = new DrawPanel(panel);
+        // 创建画板
+        wxPanel* drawPanel = new wxPanel(panel, wxID_ANY);
+        drawPanel->SetBackgroundColour(*wxWHITE);
         hbox->Add(drawPanel, 8, wxEXPAND | wxALL, 10);
-        panel->SetSizer(hbox);
+		//设置水平布局管理器
+		panel->SetSizer(hbox);
 
-        CreateStatusBar(1);
-        SetStatusText("This is a model");
+        // 创建状态栏
+        CreateStatusBar(1);  // 创建状态栏，显示一行
+        SetStatusText("This is a model");  // 设置状态栏文本
 
         wxMenuBar* menuBar = new wxMenuBar;
         wxMenu* fileMenu = new wxMenu;
@@ -44,194 +42,108 @@ public:
         fileMenu->Append(wxID_EXIT, "&Exit\tCtrl-Q", "Exit the application");
         menuBar->Append(fileMenu, "&File");
 
+        // 创建帮助菜单
         wxMenu* helpMenu = new wxMenu;
         helpMenu->Append(wxID_ABOUT, "&About\tF1", "Show about dialog");
-        menuBar->Append(helpMenu, "&Help");
+        menuBar->Append(helpMenu, "&Help");  // 将帮助菜单添加到菜单栏
 
-        SetMenuBar(menuBar);
+        SetMenuBar(menuBar);  // 设置菜单栏
+
+        // 设置窗口大小并显示
         SetSize(800, 600);
-        Show(true);
+        Show(true);  // 显示窗口
 
-
+        // 创建水平工具栏
         wxToolBar* toolbar = CreateToolBar(wxTB_HORIZONTAL | wxTB_TEXT);
-        toolbar->AddTool(wxID_NEW, "与", wxArtProvider::GetBitmap(wxART_NEW));
-        toolbar->AddTool(wxID_NEW, "或", wxArtProvider::GetBitmap(wxART_FILE_OPEN));
-        toolbar->AddTool(wxID_NEW, "非", wxArtProvider::GetBitmap(wxART_FILE_SAVE));
-        toolbar->AddTool(wxID_NEW, "删除", wxArtProvider::GetBitmap(wxART_DELETE));
-        toolbar->Realize();
+		// 添加工具栏项
+		auto toolNew = toolbar->AddTool(wxID_NEW, "New", wxArtProvider::GetBitmap(wxART_NEW));
+		auto toolOpen = toolbar->AddTool(wxID_OPEN, "Open", wxArtProvider::GetBitmap(wxART_FILE_OPEN));
+		auto toolSave = toolbar->AddTool(wxID_SAVE, "Save", wxArtProvider::GetBitmap(wxART_FILE_SAVE));
 
+        //实现工具栏
+		toolbar->Realize();
 
+        //基于侧面面板创建侧面工具栏
+		wxToolBar* subtoolbar = new wxToolBar(subPanel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTB_VERTICAL | wxNO_BORDER);
+		//添加工具栏项
+		auto subtoolNew = subtoolbar->AddTool(wxID_NEW, "New", wxArtProvider::GetBitmap(wxART_NEW));
+		auto subtoolOpen = subtoolbar->AddTool(wxID_OPEN, "Open", wxArtProvider::GetBitmap(wxART_FILE_OPEN));
+		auto subtoolSave = subtoolbar->AddTool(wxID_SAVE, "Save", wxArtProvider::GetBitmap(wxART_FILE_SAVE));
 
-        wxToolBar* subtoolbar = new wxToolBar(subPanel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTB_VERTICAL | wxNO_BORDER);
-        subtoolbar->AddTool(wxID_NEW, "New", wxArtProvider::GetBitmap(wxART_NEW));
-        subtoolbar->AddTool(wxID_OPEN, "Open", wxArtProvider::GetBitmap(wxART_FILE_OPEN));
-        subtoolbar->AddTool(wxID_SAVE, "Save", wxArtProvider::GetBitmap(wxART_FILE_SAVE));
-        subtoolbar->Realize();
+        // 设置子工具栏的大小和位置
+        subtoolbar->SetSize(subPanel->GetClientSize()); // 将子工具栏的大小设置为子面板的客户区大小
+        subtoolbar->SetPosition(wxPoint(0, 0)); // 设置子工具栏的位置为(0, 0)
+
+        // 实现工具栏
+        subtoolbar->Realize();  
+        // 设置工具栏大小和位置，使其填满子面板
         subtoolbar->SetSize(subPanel->GetClientSize());
         subtoolbar->SetPosition(wxPoint(0, 0));
+        // 绑定子面板大小变化事件，以便在子面板大小变化时调整工具栏大小
         subPanel->Bind(wxEVT_SIZE, [subtoolbar](wxSizeEvent& event) {
             subtoolbar->SetSize(event.GetSize());
             event.Skip();
-            });
+         });
 
-        Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);
-        Bind(wxEVT_MENU, &MyFrame::OnAbout, this, wxID_ABOUT);
-        Bind(wxEVT_MENU, &MyFrame::OnNew, this, wxID_NEW);
-        Bind(wxEVT_MENU, &MyFrame::OnOpen, this, wxID_OPEN);
-        Bind(wxEVT_MENU, &MyFrame::OnSave, this, wxID_SAVE);
+        // 绑定事件到相应的处理函数
+        Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);  // 绑定退出事件
+        Bind(wxEVT_MENU, &MyFrame::OnAbout, this, wxID_ABOUT);  // 绑定关于事件
+        Bind(wxEVT_MENU, &MyFrame::OnNew, this, wxID_NEW);  // 绑定新建文件事件
+        Bind(wxEVT_MENU, &MyFrame::OnOpen, this, wxID_OPEN);  // 绑定打开文件事件
+        Bind(wxEVT_MENU, &MyFrame::OnSave, this, wxID_SAVE);  // 绑定保存文件事件
     }
 
 private:
-
-
-    class DrawPanel : public wxPanel {
-    public:
-        enum class Tool { NONE, AND_GATE, OR_GATE, NOT_GATE, DELETE_GATE }; // 添加 DELETE_GATE
-
-        DrawPanel(wxWindow* parent)
-            : wxPanel(parent), currentTool(Tool::NONE) {
-            SetBackgroundColour(*wxWHITE);
-            Bind(wxEVT_PAINT, &DrawPanel::OnPaint, this);
-            Bind(wxEVT_LEFT_DOWN, &DrawPanel::OnLeftDown, this);
-            Bind(wxEVT_RIGHT_DOWN, &DrawPanel::OnRightDown, this);
-            Bind(wxEVT_SIZE, &DrawPanel::OnSize, this);
-        }
-
-        void SetCurrentTool(Tool tool) {
-            currentTool = tool;
-        }
-
-    private:
-        Tool currentTool;
-        std::vector<std::pair<Tool, wxPoint>> components;
-
-        void OnPaint(wxPaintEvent& event) {
-            wxPaintDC dc(this);
-            DrawGrid(dc);
-            for (const auto& component : components) {
-                DrawComponent(dc, component.first, component.second);
-            }
-        }
-
-        void DrawGrid(wxDC& dc) {
-            // 创建点线画笔
-            dc.SetPen(wxPen(wxColour(230, 230, 230)));
-
-            // 绘制垂直线
-            for (int i = 0; i < GetSize().GetWidth(); i += 20) {
-                dc.DrawLine(i, 0, i, GetSize().GetHeight());
-            }
-
-            // 绘制水平线
-            for (int j = 0; j < GetSize().GetHeight(); j += 20) {
-                dc.DrawLine(0, j, GetSize().GetWidth(), j);
-            }
-        }
-
-
-        void DrawComponent(wxDC& dc, Tool tool, const wxPoint& pos) {
-            if (tool == Tool::AND_GATE) {
-                dc.SetBrush(*wxGREEN_BRUSH);
-                dc.DrawRectangle(pos.x - 10, pos.y - 10, 20, 20);
-            }
-            else if (tool == Tool::OR_GATE) {
-                dc.SetBrush(*wxYELLOW_BRUSH);
-                dc.DrawEllipse(pos.x - 15, pos.y - 10, 30, 20);
-            }
-            else if (tool == Tool::NOT_GATE) {
-                dc.SetBrush(*wxRED_BRUSH);
-                dc.DrawRectangle(pos.x - 10, pos.y - 10, 20, 20);
-            }
-        }
-
-        void OnLeftDown(wxMouseEvent& event) {
-            wxPoint pos = event.GetPosition();
-            if (currentTool != Tool::NONE) {
-                if (currentTool == Tool::DELETE_GATE) {
-                    // 查找并删除组件
-                    for (auto it = components.begin(); it != components.end(); ) {
-                        if (abs(it->second.x - pos.x) < 20 && abs(it->second.y - pos.y) < 20) {
-                            it = components.erase(it); // 删除组件
-                            Refresh(); // 刷新面板
-                            return; // 只删除一个
-                        }
-                        else {
-                            ++it;
-                        }
-                    }
-                }
-                else {
-                    components.emplace_back(currentTool, pos); // 添加新组件
-                    Refresh(); // 刷新面板以重新绘制
-                }
-            }
-        }
-
-
-        void OnRightDown(wxMouseEvent& event) {
-            // 切换工具
-            if (currentTool == Tool::NONE) {
-                currentTool = Tool::AND_GATE;
-            }
-            else if (currentTool == Tool::AND_GATE) {
-                currentTool = Tool::OR_GATE;
-            }
-            else if (currentTool == Tool::OR_GATE) {
-                currentTool = Tool::NOT_GATE;
-            }
-            else if (currentTool == Tool::NOT_GATE) {
-                currentTool = Tool::DELETE_GATE; // 切换到删除工具
-            }
-            else {
-                currentTool = Tool::NONE; // 切换回无工具
-            }
-
-            wxString toolName = (currentTool == Tool::AND_GATE) ? "AND Gate" :
-                (currentTool == Tool::OR_GATE) ? "OR Gate" :
-                (currentTool == Tool::NOT_GATE) ? "NOT Gate" :
-                (currentTool == Tool::DELETE_GATE) ? "Delete Gate" : "None";
-
-            wxLogMessage("Current Tool: %s", toolName);
-        }
-
-        void OnSize(wxSizeEvent& event) {
-            Refresh();
-            event.Skip();
-        }
-    };
-
-
-    DrawPanel* drawPanel;
-
+    // 退出事件处理函数
     void OnExit(wxCommandEvent& event) {
-        Close(true);
+        Close(true);  // 关闭窗口
     }
 
+    // 关于事件处理函数
     void OnAbout(wxCommandEvent& event) {
-        wxMessageBox("This is a wxWidgets EDA application.", "About My Application", wxOK | wxICON_INFORMATION);
+        wxMessageBox("This is a wxWidgets EDA application.", "About My Application", wxOK | wxICON_INFORMATION);  // 显示关于对话框
     }
 
+    // 新建文件事件处理函数
     void OnNew(wxCommandEvent& event) {
-        //drawPanel->Refresh();
-        wxLogMessage("New file created!");
+        wxLogMessage("New file created!");  // 日志输出新建文件消息
     }
 
+    // 打开文件事件处理函数
     void OnOpen(wxCommandEvent& event) {
+        // 创建文件打开对话框
         wxFileDialog openFileDialog(this, "Open File", "", "", "All files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-        if (openFileDialog.ShowModal() == wxID_OK) {
-            wxString path = openFileDialog.GetPath();
-            wxLogMessage("Opened file: %s", path);
+        if (openFileDialog.ShowModal() == wxID_OK) {  // 如果用户选择了文件
+            wxString path = openFileDialog.GetPath();  // 获取文件路径
+            wxLogMessage("Opened file: %s", path);  // 日志输出打开的文件路径
         }
     }
 
+    // 保存文件事件处理函数
     void OnSave(wxCommandEvent& event) {
+        // 创建文件保存对话框
         wxFileDialog saveFileDialog(this, "Save File", "", "", "All files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-        if (saveFileDialog.ShowModal() == wxID_OK) {
-            wxString path = saveFileDialog.GetPath();
-            wxLogMessage("Saved file: %s", path);
+        if (saveFileDialog.ShowModal() == wxID_OK) {  // 如果用户选择了文件
+            wxString path = saveFileDialog.GetPath();  // 获取文件路径
+            wxLogMessage("Saved file: %s", path);  // 日志输出保存的文件路径
         }
     }
 
+
+    // 工具栏点击事件处理函数
+    void OnToolClicked(wxCommandEvent& event) {
+        switch (event.GetId()) {  // 根据事件 ID 选择处理函数
+        case wxID_NEW:
+            OnNew(event);  // 调用新建文件处理函数
+            break;
+        case wxID_OPEN:
+            OnOpen(event);  // 调用打开文件处理函数
+            break;
+        case wxID_SAVE:
+            OnSave(event);  // 调用保存文件处理函数
+            break;
+        }
+    }
 };
 
 class MyApp : public wxApp {
@@ -242,4 +154,5 @@ public:
     }
 };
 
+// 实现 wxWidgets 应用程序
 wxIMPLEMENT_APP(MyApp);

@@ -240,7 +240,7 @@ private:
                 Refresh(); // 刷新绘图
             }
         }
-
+        
         void OnLeftUp(wxMouseEvent& event) {
             // 释放拖动标记
             if (dragging) {

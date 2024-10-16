@@ -161,8 +161,15 @@ private:
             wxPoint snapPoint(gridX, gridY);
             // 根据工具类型绘制对应的组件
             if (tool == Tool::AND_GATE) {
-                dc.SetBrush(*wxGREEN_BRUSH);
-                dc.DrawRectangle(snapPoint.x - 10, snapPoint.y - 10, 20, 20);
+                wxPoint points[5] = {
+                    wxPoint(snapPoint.x - 20, snapPoint.y - 20), // 左上
+                    wxPoint(snapPoint.x , snapPoint.y - 20), // 右上
+                    wxPoint(snapPoint.x , snapPoint.y + 20), // 中下
+                    wxPoint(snapPoint.x - 20, snapPoint.y + 20)  // 左下
+                };
+                dc.SetPen(wxPen(*wxBLACK, 4)); // 边框颜色和宽度
+                dc.DrawPolygon(4, points); // 绘制与门
+                dc.DrawArc(snapPoint.x, snapPoint.y + 20, snapPoint.x, snapPoint.y - 20, snapPoint.x, snapPoint.y); // 绘制圆边
             }
             else if (tool == Tool::OR_GATE) {
                 dc.SetBrush(*wxYELLOW_BRUSH);

@@ -1,9 +1,21 @@
-﻿#include <wx/wx.h>
+﻿#include<wx/wx.h>
 #include <wx/toolbar.h>
 #include <wx/filedlg.h>
 #include <wx/image.h>
 #include <wx/artprov.h>
 #include <vector>
+#include <wx/frame.h>       // 包含框架窗口相关功能
+#include <wx/treectrl.h>    // 包含树控件的相关功能
+
+#ifndef wxID_MAXIMIZE
+#define wxID_MAXIMIZE 10001// 手动定义最大化标识符
+#endif
+
+#ifndef wxID_MINIMIZE
+#define wxID_MINIMIZE 10002// 手动定义最小化标识符
+#endif
+
+#define ID_SHOW_TEXT_BOX 10003//手动定义指导教程文本标识符
 
 // 主框架类，继承自wxFrame
 class MyFrame : public wxFrame {
@@ -36,18 +48,64 @@ public:
         SetStatusText("This is a model"); // 设置状态栏的文本
 
         // 创建菜单栏，包含文件和帮助菜单
-        wxMenuBar* menuBar = new wxMenuBar;
-        wxMenu* fileMenu = new wxMenu; // 创建文件菜单
-        fileMenu->Append(wxID_NEW, "&New\tCtrl-N", "Create a new file"); // 添加新建文件选项
-        fileMenu->Append(wxID_OPEN, "&Open\tCtrl-O", "Open a file"); // 添加打开文件选项
-        fileMenu->Append(wxID_SAVE, "&Save\tCtrl-S", "Save the file"); // 添加保存文件选项
-        fileMenu->AppendSeparator(); // 添加分隔符
-        fileMenu->Append(wxID_EXIT, "&Exit\tCtrl-Q", "Exit the application"); // 添加退出应用选项
-        menuBar->Append(fileMenu, "&File"); // 将文件菜单添加到菜单栏
+        // 创建菜单
+        wxMenuBar* menuBar = new wxMenuBar;  // 创建菜单栏
+        wxMenu* fileMenu = new wxMenu;  // 创建文件菜单
+        // 向文件菜单添加项
+        fileMenu->Append(wxID_NEW, "&New\tCtrl-N", "Create a new file");
+        fileMenu->Append(wxID_OPEN, "&Open\tCtrl-O", "Open a file");
+        fileMenu->Append(wxID_SAVE, "&Save\tCtrl-S", "Save the file");
+        fileMenu->AppendSeparator();  // 添加分隔符
+        fileMenu->Append(wxID_EXIT, "&Exit\tCtrl-Q", "Exit the application");
+        menuBar->Append(fileMenu, "&File");  // 将文件菜单添加到菜单栏
 
-        wxMenu* helpMenu = new wxMenu; // 创建帮助菜单
-        helpMenu->Append(wxID_ABOUT, "&About\tF1", "Show about dialog"); // 添加关于选项
-        menuBar->Append(helpMenu, "&Help"); // 将帮助菜单添加到菜单栏
+        // 创建编辑菜单
+        wxMenu* editMenu = new wxMenu;
+        //向编辑菜单中添加项
+        editMenu->Append(wxID_ANY, "Cut\tCtrl+Z");
+        editMenu->AppendSeparator();//添加分隔符
+        editMenu->Append(wxID_ANY, "Paste\tCtrl+X");
+        editMenu->Append(wxID_ANY, "Copy\tCtrl+C");
+        editMenu->Append(wxID_ANY, "Paste\tCtrl+V");
+        editMenu->AppendSeparator();//添加分隔符
+        editMenu->Append(wxID_ANY, "Select All\tCtrl+A");
+        menuBar->Append(editMenu, "Edit"); // 将编辑菜单添加到菜单栏
+
+        // 创建项目菜单
+        wxMenu* projectMenu = new wxMenu;
+        projectMenu->Append(wxID_ANY, "Add Circuit...");
+        projectMenu->Append(wxID_ANY, "Load Library");
+        projectMenu->Append(wxID_ANY, "Unload Libraries...");
+        projectMenu->AppendSeparator();//添加分隔符
+        projectMenu->Append(wxID_ANY, "Move Circuit Up");
+        projectMenu->Append(wxID_ANY, "Move Circuit Down");
+        projectMenu->Append(wxID_ANY, "Set as Main Circuit");
+        menuBar->Append(projectMenu, "Project"); // 将项目菜单添加到菜单栏
+
+        // 创建模拟菜单
+        wxMenu* simulateMenu = new wxMenu;
+        simulateMenu->Append(wxID_ANY, "Simulation Enabled");
+        simulateMenu->Append(wxID_ANY, "Reset Simulation");
+        simulateMenu->Append(wxID_ANY, "Step Simulation");
+        simulateMenu->AppendSeparator();//添加分隔符
+        simulateMenu->Append(wxID_ANY, "Go Out To State");
+        simulateMenu->Append(wxID_ANY, "Go In To State");
+        menuBar->Append(simulateMenu, "Simulation"); // 将模拟菜单添加到菜单栏
+
+        // 添加一个名为window的菜单
+        wxMenu* windowMenu = new wxMenu;
+        windowMenu->Append(wxID_MAXIMIZE, "&Maximize\tCtrl+M");
+        windowMenu->Append(wxID_MINIMIZE, "&Minimize\tCtrl+N");
+        windowMenu->Append(wxID_CLOSE, "&Close\tCtrl+W");
+        menuBar->Append(windowMenu, "&Window");  // 将window菜单添加到菜单栏
+
+        // 创建帮助菜单
+        wxMenu* helpMenu = new wxMenu;
+        helpMenu->Append(wxID_ABOUT, "&About\tF1", "Show about dialog");
+        helpMenu->Append(ID_SHOW_TEXT_BOX, "Show Text Box", "Show a new text box");
+        menuBar->Append(helpMenu, "&Help");  // 将帮助菜单添加到菜单栏
+
+
 
         SetMenuBar(menuBar); // 设置应用程序的菜单栏
         SetSize(800, 600); // 设置窗口的初始大小
@@ -84,13 +142,19 @@ public:
         Bind(wxEVT_MENU, &MyFrame::OnNew, this, wxID_NEW); // 绑定新建事件
         Bind(wxEVT_MENU, &MyFrame::OnOpen, this, wxID_OPEN); // 绑定打开事件
         Bind(wxEVT_MENU, &MyFrame::OnSave, this, wxID_SAVE); // 绑定保存事件
-
+        Bind(wxEVT_MENU, &MyFrame::OnMaximize, this, wxID_MAXIMIZE); // 绑定最大化事件
+        Bind(wxEVT_MENU, &MyFrame::OnMinimize, this, wxID_MINIMIZE); // 绑定最小化事件
+        Bind(wxEVT_MENU, &MyFrame::OnCloseWindow, this, wxID_CLOSE); // 绑定关闭事件
+        Bind(wxEVT_MENU, &MyFrame::OnShowTextBox, this, ID_SHOW_TEXT_BOX);//绑定help指导文档
         // 绑定子工具栏事件，响应工具选择
         subtoolbar->Bind(wxEVT_TOOL, &MyFrame::OnSelectTool, this); // 绑定工具选择事件
 
     }
 
 private:
+    wxTreeCtrl* treeCtrl;   // 树控件指针，用于显示和操作树形结构的控件
+    wxTextCtrl* textBox;    // 文本框指针，用于显示和编辑文本内容的控件
+
     class DrawPanel : public wxPanel {
     public:
         enum class Tool { NONE, AND_GATE, OR_GATE, NOT_GATE }; // 定义工具类型，包括无工具、与门、或门和非门
@@ -161,23 +225,50 @@ private:
             wxPoint snapPoint(gridX, gridY);
             // 根据工具类型绘制对应的组件
             if (tool == Tool::AND_GATE) {
-                wxPoint points[5] = {
+                wxPoint points[4] = {
                     wxPoint(snapPoint.x - 20, snapPoint.y - 20), // 左上
                     wxPoint(snapPoint.x , snapPoint.y - 20), // 右上
                     wxPoint(snapPoint.x , snapPoint.y + 20), // 中下
                     wxPoint(snapPoint.x - 20, snapPoint.y + 20)  // 左下
                 };
                 dc.SetPen(wxPen(*wxBLACK, 4)); // 边框颜色和宽度
-                dc.DrawPolygon(4, points); // 绘制与门
+                dc.DrawPolygon(4, points); // 绘制与门左侧部分
                 dc.DrawArc(snapPoint.x, snapPoint.y + 20, snapPoint.x, snapPoint.y - 20, snapPoint.x, snapPoint.y); // 绘制圆边
+                wxRect rect(snapPoint.x - 10, snapPoint.y - 17, 12, 35);
+                dc.SetPen(wxPen(*wxWHITE, 2)); // 边框颜色和宽度
+                dc.SetBrush(wxBrush(*wxWHITE)); // 设置为白色刷子以覆盖
+                dc.DrawRectangle(rect); // 绘制覆盖矩形
+                dc.SetPen(wxPen(*wxBLACK, 4)); // 边框颜色和宽度
+                dc.DrawLine(snapPoint.x - 20, snapPoint.y + 10, snapPoint.x - 27, snapPoint.y + 10);
+                dc.DrawLine(snapPoint.x - 20, snapPoint.y - 10, snapPoint.x - 27, snapPoint.y - 10);
+                dc.DrawLine(snapPoint.x + 20, snapPoint.y, snapPoint.x + 25, snapPoint.y);
             }
             else if (tool == Tool::OR_GATE) {
-                dc.SetBrush(*wxYELLOW_BRUSH);
-                dc.DrawEllipse(snapPoint.x - 15, snapPoint.y - 10, 30, 20);
+                dc.SetPen(wxPen(*wxBLACK, 4)); // 边框颜色和宽度;
+                wxPoint points[5] = {
+                    wxPoint(snapPoint.x - 20, snapPoint.y - 20),
+                    wxPoint(snapPoint.x, snapPoint.y - 18),
+                    wxPoint(snapPoint.x + 25, snapPoint.y),
+                    wxPoint(snapPoint.x, snapPoint.y + 18),
+                    wxPoint(snapPoint.x - 20, snapPoint.y + 20)
+                };
+                dc.DrawSpline(5, points);//绘制或门右侧部分
+                dc.DrawEllipticArc(snapPoint.x - 60, snapPoint.y - 25, 50, 50, -53, 53);//绘制或门左侧部分
+                dc.DrawLine(snapPoint.x - 14, snapPoint.y + 10, snapPoint.x - 25, snapPoint.y + 10);
+                dc.DrawLine(snapPoint.x - 14, snapPoint.y - 10, snapPoint.x - 25, snapPoint.y - 10);
+                dc.DrawLine(snapPoint.x + 20, snapPoint.y, snapPoint.x + 25, snapPoint.y);
             }
             else if (tool == Tool::NOT_GATE) {
-                dc.SetBrush(*wxRED_BRUSH);
-                dc.DrawRectangle(snapPoint.x - 10, snapPoint.y - 10, 20, 20);
+                dc.SetPen(wxPen(*wxBLACK, 4)); // 边框颜色和宽度;
+                wxPoint points[3] = {
+                    wxPoint(snapPoint.x - 20, snapPoint.y - 20), 
+                    wxPoint(snapPoint.x + 12, snapPoint.y),
+                    wxPoint(snapPoint.x -20, snapPoint.y + 20)
+                };
+                dc.DrawPolygon(3, points); // 绘制非门左侧部分
+                dc.DrawCircle(snapPoint.x + 16, snapPoint.y, 4);
+                dc.DrawLine(snapPoint.x - 20, snapPoint.y, snapPoint.x - 27, snapPoint.y);
+                dc.DrawLine(snapPoint.x + 20, snapPoint.y, snapPoint.x + 25, snapPoint.y);
             }
         }
 
@@ -318,6 +409,80 @@ private:
             break;
         }
     }
+    // 最大化窗口
+    void OnMaximize(wxCommandEvent& event) {
+        Maximize(true);
+    }
+
+    // 最小化窗口
+    void OnMinimize(wxCommandEvent& event) {
+        Iconize(true);
+    }
+
+    // 关闭窗口
+    void OnCloseWindow(wxCommandEvent& event) {
+        Close(true);
+    }
+
+    //添加help菜单下的指导文档
+    void OnShowTextBox(wxCommandEvent& event) {
+        // 创建一个新的 wxFrame 实例
+        wxFrame* newFrame = new wxFrame(this, wxID_ANY, "Help Window", wxDefaultPosition, wxSize(1000, 600));
+
+        // 创建 wxTreeCtrl 和 wxTextCtrl 控件
+        treeCtrl = new wxTreeCtrl(newFrame, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTR_DEFAULT_STYLE);
+        textBox = new wxTextCtrl(newFrame, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE);
+        textBox->AppendText("Select a guide from the tree on the left.");
+
+        // 设置新窗口的布局管理器
+        wxBoxSizer* newFrameSizer = new wxBoxSizer(wxHORIZONTAL);
+        newFrameSizer->Add(treeCtrl, 1, wxEXPAND | wxALL, 10);  // 添加树控件
+        newFrameSizer->Add(textBox, 3, wxEXPAND | wxALL, 10);  // 添加文本框，权重为3
+        newFrame->SetSizer(newFrameSizer);
+
+        // 创建根节点
+        wxTreeItemId rootId = treeCtrl->AddRoot("Guides");
+
+        // 添加子节点
+        treeCtrl->AppendItem(rootId, "Guide 1");
+        treeCtrl->AppendItem(rootId, "Guide 2");
+        treeCtrl->AppendItem(rootId, "Guide 3");
+        treeCtrl->AppendItem(rootId, "Guide 4");
+        treeCtrl->AppendItem(rootId, "Guide 5");
+
+        // 绑定树控件的事件处理程序
+        treeCtrl->Bind(wxEVT_TREE_SEL_CHANGED, &MyFrame::OnTreeItemSelected, this);
+
+        // 将新窗口居中显示
+        newFrame->Center();
+
+        // 显示新窗口
+        newFrame->Show();
+    }
+
+    //处理树控件选择事件的函数
+    void OnTreeItemSelected(wxTreeEvent& event) {
+        wxTreeItemId itemId = event.GetItem();
+        wxString nodeName = treeCtrl->GetItemText(itemId);
+
+        // 根据所选节点名称更新文本框内容
+        if (nodeName == "Guide 1") {
+            textBox->SetValue("Content for Guide 1: Lorem ipsum dolor sit amet...");
+        }
+        else if (nodeName == "Guide 2") {
+            textBox->SetValue("Content for Guide 2: Consectetur adipiscing elit...");
+        }
+        else if (nodeName == "Guide 3") {
+            textBox->SetValue("Content for Guide 3: Sed do eiusmod tempor incididunt...");
+        }
+        else if (nodeName == "Guide 4") {
+            textBox->SetValue("Content for Guide 4: Ut labore et dolore magna aliqua...");
+        }
+        else if (nodeName == "Guide 5") {
+            textBox->SetValue("Content for Guide 5: Duis aute irure dolor in reprehenderit...");
+        }
+    }
+
 };
 
 class MyApp : public wxApp {

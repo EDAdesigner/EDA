@@ -382,6 +382,7 @@ private:
             break;
         }
     }
+    //这是一个测试
     // 最大化窗口
     void OnMaximize(wxCommandEvent& event) {
         Maximize(true);

@@ -1,4 +1,4 @@
-﻿#include <wx/wx.h>
+﻿#include<wx/wx.h>
 #include <wx/toolbar.h>
 #include <wx/filedlg.h>
 #include <wx/image.h>
@@ -20,7 +20,6 @@
 #define ID_CUT 10005//手动定义剪切菜单标识符
 #define ID_COPY 10006//手动定义复制菜单标识符
 #define ID_PASTE 10007//手动定义粘贴菜单标识符
-
 
 // 主框架类，继承自wxFrame
 class MyFrame : public wxFrame {
@@ -52,6 +51,7 @@ public:
         CreateStatusBar(1);
         SetStatusText("This is a model"); // 设置状态栏的文本
 
+        // 创建菜单栏，包含文件和帮助菜单
         // 创建菜单
         wxMenuBar* menuBar = new wxMenuBar;  // 创建菜单栏
         wxMenu* fileMenu = new wxMenu;  // 创建文件菜单
@@ -109,6 +109,7 @@ public:
         menuBar->Append(helpMenu, "&Help");  // 将帮助菜单添加到菜单栏
 
 
+
         SetMenuBar(menuBar); // 设置应用程序的菜单栏
         SetSize(800, 600); // 设置窗口的初始大小
         Show(true); // 显示窗口
@@ -147,11 +148,11 @@ public:
         Bind(wxEVT_MENU, &MyFrame::OnMaximize, this, wxID_MAXIMIZE); // 绑定最大化事件
         Bind(wxEVT_MENU, &MyFrame::OnMinimize, this, wxID_MINIMIZE); // 绑定最小化事件
         Bind(wxEVT_MENU, &MyFrame::OnCloseWindow, this, wxID_CLOSE); // 绑定关闭事件
-        Bind(wxEVT_MENU, &MyFrame::OnShowTextBox, this, ID_SHOW_TEXT_BOX);//绑定help指导文档
         Bind(wxEVT_MENU, &MyFrame::OnSelectAll, this, ID_SELECT_ALL); // 绑定选择所有事件
         Bind(wxEVT_MENU, &MyFrame::OnCopy, this, ID_COPY); // 绑定复制事件
         Bind(wxEVT_MENU, &MyFrame::OnPaste, this, ID_PASTE); // 绑定粘贴事件
         Bind(wxEVT_MENU, &MyFrame::OnCut, this, ID_CUT); // 绑定剪切事件
+        Bind(wxEVT_MENU, &MyFrame::OnShowTextBox, this, ID_SHOW_TEXT_BOX);//绑定help指导文档
         // 绑定子工具栏事件，响应工具选择
         subtoolbar->Bind(wxEVT_TOOL, &MyFrame::OnSelectTool, this); // 绑定工具选择事件
 
@@ -165,11 +166,13 @@ private:
         friend class MyFrame; // 声明 MyFrame 为友元类,使得wxframe能够访问DrawPanel的私有方法
     public:
         enum class Tool { NONE, AND_GATE, OR_GATE, NOT_GATE }; // 定义工具类型，包括无工具、与门、或门和非门
+        wxBitmap* bitmap = nullptr;// 新增位图指针
 
         DrawPanel(wxWindow* parent)
             : wxPanel(parent), currentTool(Tool::NONE), dragging(false) {
             // 构造函数，初始化面板及背景颜色
             SetBackgroundColour(*wxWHITE);
+            bitmap = new wxBitmap(GetSize()); // 初始化位图
             // 绑定事件
             Bind(wxEVT_PAINT, &DrawPanel::OnPaint, this); // 绘制事件
             Bind(wxEVT_LEFT_DOWN, &DrawPanel::OnLeftDown, this); // 左键按下事件
@@ -179,13 +182,17 @@ private:
             Bind(wxEVT_SIZE, &DrawPanel::OnSize, this); // 面板大小变化事件
         }
 
+        ~DrawPanel() {
+            delete bitmap; // 释放位图内存
+        }
+
         void SetCurrentTool(Tool tool) {
             currentTool = tool; // 设置当前选择的工具
         }
 
     private:
         Tool currentTool; // 当前工具
-        std::vector<std::pair<Tool, wxPoint>> components; // 存储已添加的组件及其位置        
+        std::vector<std::pair<Tool, wxPoint>> components; // 存储已添加的组件及其位置
         std::vector<int> selectedComponents;// 存储选中的组件
         std::vector<std::pair<Tool, wxPoint>> copiedComponents; // 存储复制的组件
         bool dragging; // 标记是否正在拖动组件
@@ -193,92 +200,72 @@ private:
         wxPoint dragStartPos; // 拖动开始位置
 
         void OnPaint(wxPaintEvent& event) {
-            wxPaintDC dc(this); // 创建绘图设备上下文
-            DrawGrid(dc); // 绘制网格
+            if (!bitmap || bitmap->GetSize() != GetSize()) {
+                delete bitmap;  // 删除旧位图
+                bitmap = new wxBitmap(GetSize()); // 创建新的位图
+            }
+            Render(*bitmap); // 每次绘制都更新位图
+            wxPaintDC dc(this);
+            dc.DrawBitmap(*bitmap, 0, 0); // 将位图绘制到面板上
+        }
+
+        void Render(wxBitmap& bitmap) {
+            wxMemoryDC memDC(bitmap); // 使用内存DC绘制到位图
+            memDC.SetBackground(*wxWHITE_BRUSH);
+            memDC.Clear();
+            DrawGrid(memDC);
             for (const auto& component : components) {
-                DrawComponent(dc, component.first, component.second); // 绘制每个组件
+                DrawComponent(memDC, component.first, component.second);
             }
-        }
-
-        // 选择所有组件
-        void SelectAll() {
-            selectedComponents.clear(); // 清空之前的选择
-            for (size_t i = 0; i < components.size(); ++i) {
-                selectedComponents.push_back(i); // 将所有组件索引添加到选中列表
-            }
-            Refresh(); // 刷新绘图
-        }
-        
-        // 删除选中的组件
-        void CutSelected() {
-            for (auto it = selectedComponents.rbegin(); it != selectedComponents.rend(); ++it) {
-                components.erase(components.begin() + *it); // 从 components 中删除
-            }
-            selectedComponents.clear(); // 清空选中的组件
-            Refresh(); // 刷新绘图
-        }
-
-        //复制选中的组件
-        void CopySelected() {
-            copiedComponents.clear(); // 清空之前的复制内容
-            for (int index : selectedComponents) {
-                if (index >= 0 && index < components.size()) {
-                    copiedComponents.push_back(components[index]); // 复制组件
-                }
-            }
-        }
-
-        //粘贴选中的组件
-        void PasteCopied() {
-            for (const auto& component : copiedComponents) {
-                // 在复制组件的位置上进行粘贴，稍微调整位置
-                wxPoint newPosition = component.second + wxPoint(10, 10); // 偏移位置
-                components.push_back({ component.first, newPosition }); // 添加到组件列表中
-            }
-            Refresh(); // 刷新绘图
         }
 
         void DrawGrid(wxDC& dc) {
-            dc.SetPen(*wxLIGHT_GREY_PEN); // 设置网格线颜色
+            dc.SetPen(wxPen(wxColour(200, 200, 200), 1, wxPENSTYLE_DOT));
             for (int i = 0; i < GetSize().GetWidth(); i += 20) {
-                dc.DrawLine(i, 0, i, GetSize().GetHeight()); // 绘制垂直网格线
+                dc.DrawLine(i, 0, i, GetSize().GetHeight());
             }
             for (int j = 0; j < GetSize().GetHeight(); j += 20) {
-                dc.DrawLine(0, j, GetSize().GetWidth(), j); // 绘制水平网格线
+                dc.DrawLine(0, j, GetSize().GetWidth(), j);
             }
         }
 
         void DrawComponent(wxDC& dc, Tool tool, const wxPoint& pos) {
-            // 将组件位置对齐到最近的网格点
             int gridX = (pos.x / 20) * 20;
             int gridY = (pos.y / 20) * 20;
             wxPoint snapPoint(gridX, gridY);
-
             // 根据工具类型绘制对应的组件
             if (tool == Tool::AND_GATE) {
-                dc.SetBrush(*wxGREEN_BRUSH);
-                dc.DrawRectangle(snapPoint.x - 10, snapPoint.y - 10, 20, 20); // 绘制与门
+                wxPoint points[5] = {
+                    wxPoint(snapPoint.x - 20, snapPoint.y - 20), // 左上
+                    wxPoint(snapPoint.x , snapPoint.y - 20), // 右上
+                    wxPoint(snapPoint.x , snapPoint.y + 20), // 中下
+                    wxPoint(snapPoint.x - 20, snapPoint.y + 20)  // 左下
+                };
+                dc.SetPen(wxPen(*wxBLACK, 4)); // 边框颜色和宽度
+                dc.DrawPolygon(4, points); // 绘制与门
+                dc.DrawArc(snapPoint.x, snapPoint.y + 20, snapPoint.x, snapPoint.y - 20, snapPoint.x, snapPoint.y); // 绘制圆边
             }
             else if (tool == Tool::OR_GATE) {
                 dc.SetBrush(*wxYELLOW_BRUSH);
-                dc.DrawEllipse(snapPoint.x - 15, snapPoint.y - 10, 30, 20); // 绘制或门
+                dc.DrawEllipse(snapPoint.x - 15, snapPoint.y - 10, 30, 20);
             }
             else if (tool == Tool::NOT_GATE) {
                 dc.SetBrush(*wxRED_BRUSH);
-                dc.DrawRectangle(snapPoint.x - 10, snapPoint.y - 10, 20, 20); // 绘制非门
+                dc.DrawRectangle(snapPoint.x - 10, snapPoint.y - 10, 20, 20);
             }
         }
+
 
         void OnLeftDown(wxMouseEvent& event) {
             wxPoint pos = event.GetPosition(); // 获取鼠标点击位置
             // 检查是否点击在现有组件上
             for (size_t i = 0; i < components.size(); ++i) {
                 if (abs(components[i].second.x - pos.x) < 20 && abs(components[i].second.y - pos.y) < 20) {
-                    dragging = true; // 标记为正在拖动
-                    draggedComponentIndex = i; // 记录被拖动的组件索引
-                    dragStartPos = pos; // 记录拖动开始位置
-                    CaptureMouse(); // 捕获鼠标事件
-                    return; // 退出函数
+                    dragging = true;
+                    draggedComponentIndex = i;
+                    dragStartPos = pos;
+                    CaptureMouse();
+                    return;
                 }
             }
 
@@ -288,6 +275,7 @@ private:
                 Refresh(); // 刷新绘图
             }
         }
+
 
         void OnLeftUp(wxMouseEvent& event) {
             // 释放拖动标记
@@ -342,6 +330,44 @@ private:
         void OnSize(wxSizeEvent& event) {
             Refresh(); // 面板大小改变时刷新绘图
             event.Skip(); // 继续处理其他事件
+        }
+
+        // 选择所有组件
+        void SelectAll() {
+            selectedComponents.clear(); // 清空之前的选择
+            for (size_t i = 0; i < components.size(); ++i) {
+                selectedComponents.push_back(i); // 将所有组件索引添加到选中列表
+            }
+            Refresh(); // 刷新绘图
+        }
+
+        // 删除选中的组件
+        void CutSelected() {
+            for (auto it = selectedComponents.rbegin(); it != selectedComponents.rend(); ++it) {
+                components.erase(components.begin() + *it); // 从 components 中删除
+            }
+            selectedComponents.clear(); // 清空选中的组件
+            Refresh(); // 刷新绘图
+        }
+
+        //复制选中的组件
+        void CopySelected() {
+            copiedComponents.clear(); // 清空之前的复制内容
+            for (int index : selectedComponents) {
+                if (index >= 0 && index < components.size()) {
+                    copiedComponents.push_back(components[index]); // 复制组件
+                }
+            }
+        }
+
+        //粘贴选中的组件
+        void PasteCopied() {
+            for (const auto& component : copiedComponents) {
+                // 在复制组件的位置上进行粘贴，稍微调整位置
+                wxPoint newPosition = component.second + wxPoint(10, 10); // 偏移位置
+                components.push_back({ component.first, newPosition }); // 添加到组件列表中
+            }
+            Refresh(); // 刷新绘图
         }
     };
 
@@ -404,7 +430,6 @@ private:
             break;
         }
     }
-
     // 最大化窗口
     void OnMaximize(wxCommandEvent& event) {
         Maximize(true);
@@ -498,7 +523,6 @@ private:
             textBox->SetValue("Content for Guide 5: Duis aute irure dolor in reprehenderit...");
         }
     }
-
 
 };
 

@@ -96,11 +96,13 @@ private:
     class DrawPanel : public wxPanel {
     public:
         enum class Tool { NONE, AND_GATE, OR_GATE, NOT_GATE }; // 定义工具类型，包括无工具、与门、或门和非门
+        wxBitmap* bitmap = nullptr;// 新增位图指针
 
         DrawPanel(wxWindow* parent)
             : wxPanel(parent), currentTool(Tool::NONE), dragging(false) {
             // 构造函数，初始化面板及背景颜色
             SetBackgroundColour(*wxWHITE);
+            bitmap = new wxBitmap(GetSize()); // 初始化位图
             // 绑定事件
             Bind(wxEVT_PAINT, &DrawPanel::OnPaint, this); // 绘制事件
             Bind(wxEVT_LEFT_DOWN, &DrawPanel::OnLeftDown, this); // 左键按下事件
@@ -108,6 +110,10 @@ private:
             Bind(wxEVT_MOTION, &DrawPanel::OnMouseMove, this); // 鼠标移动事件
             Bind(wxEVT_RIGHT_DOWN, &DrawPanel::OnRightDown, this); // 右键按下事件
             Bind(wxEVT_SIZE, &DrawPanel::OnSize, this); // 面板大小变化事件
+        }
+
+        ~DrawPanel() {
+            delete bitmap; // 释放位图内存
         }
 
         void SetCurrentTool(Tool tool) {
@@ -122,54 +128,72 @@ private:
         wxPoint dragStartPos; // 拖动开始位置
 
         void OnPaint(wxPaintEvent& event) {
-            wxPaintDC dc(this); // 创建绘图设备上下文
-            DrawGrid(dc); // 绘制网格
+            if (!bitmap || bitmap->GetSize() != GetSize()) {
+                delete bitmap;  // 删除旧位图
+                bitmap = new wxBitmap(GetSize()); // 创建新的位图
+            }
+            Render(*bitmap); // 每次绘制都更新位图
+            wxPaintDC dc(this);
+            dc.DrawBitmap(*bitmap, 0, 0); // 将位图绘制到面板上
+        }
+
+        void Render(wxBitmap& bitmap) {
+            wxMemoryDC memDC(bitmap); // 使用内存DC绘制到位图
+            memDC.SetBackground(*wxWHITE_BRUSH);
+            memDC.Clear();
+            DrawGrid(memDC);
             for (const auto& component : components) {
-                DrawComponent(dc, component.first, component.second); // 绘制每个组件
+                DrawComponent(memDC, component.first, component.second);
             }
         }
 
         void DrawGrid(wxDC& dc) {
-            dc.SetPen(*wxLIGHT_GREY_PEN); // 设置网格线颜色
+            dc.SetPen(wxPen(wxColour(200, 200, 200), 1, wxPENSTYLE_DOT));
             for (int i = 0; i < GetSize().GetWidth(); i += 20) {
-                dc.DrawLine(i, 0, i, GetSize().GetHeight()); // 绘制垂直网格线
+                dc.DrawLine(i, 0, i, GetSize().GetHeight());
             }
             for (int j = 0; j < GetSize().GetHeight(); j += 20) {
-                dc.DrawLine(0, j, GetSize().GetWidth(), j); // 绘制水平网格线
+                dc.DrawLine(0, j, GetSize().GetWidth(), j);
             }
         }
 
         void DrawComponent(wxDC& dc, Tool tool, const wxPoint& pos) {
-            // 将组件位置对齐到最近的网格点
             int gridX = (pos.x / 20) * 20;
             int gridY = (pos.y / 20) * 20;
             wxPoint snapPoint(gridX, gridY);
-
             // 根据工具类型绘制对应的组件
             if (tool == Tool::AND_GATE) {
-                dc.SetBrush(*wxGREEN_BRUSH);
-                dc.DrawRectangle(snapPoint.x - 10, snapPoint.y - 10, 20, 20); // 绘制与门
+                wxPoint points[5] = {
+                    wxPoint(snapPoint.x - 20, snapPoint.y - 20), // 左上
+                    wxPoint(snapPoint.x , snapPoint.y - 20), // 右上
+                    wxPoint(snapPoint.x , snapPoint.y + 20), // 中下
+                    wxPoint(snapPoint.x - 20, snapPoint.y + 20)  // 左下
+                };
+                dc.SetPen(wxPen(*wxBLACK, 4)); // 边框颜色和宽度
+                dc.DrawPolygon(4, points); // 绘制与门
+                dc.DrawArc(snapPoint.x, snapPoint.y + 20, snapPoint.x, snapPoint.y - 20, snapPoint.x, snapPoint.y); // 绘制圆边
             }
             else if (tool == Tool::OR_GATE) {
                 dc.SetBrush(*wxYELLOW_BRUSH);
-                dc.DrawEllipse(snapPoint.x - 15, snapPoint.y - 10, 30, 20); // 绘制或门
+                dc.DrawEllipse(snapPoint.x - 15, snapPoint.y - 10, 30, 20);
             }
             else if (tool == Tool::NOT_GATE) {
                 dc.SetBrush(*wxRED_BRUSH);
-                dc.DrawRectangle(snapPoint.x - 10, snapPoint.y - 10, 20, 20); // 绘制非门
+                dc.DrawRectangle(snapPoint.x - 10, snapPoint.y - 10, 20, 20);
             }
         }
+
 
         void OnLeftDown(wxMouseEvent& event) {
             wxPoint pos = event.GetPosition(); // 获取鼠标点击位置
             // 检查是否点击在现有组件上
             for (size_t i = 0; i < components.size(); ++i) {
                 if (abs(components[i].second.x - pos.x) < 20 && abs(components[i].second.y - pos.y) < 20) {
-                    dragging = true; // 标记为正在拖动
-                    draggedComponentIndex = i; // 记录被拖动的组件索引
-                    dragStartPos = pos; // 记录拖动开始位置
-                    CaptureMouse(); // 捕获鼠标事件
-                    return; // 退出函数
+                    dragging = true;
+                    draggedComponentIndex = i;
+                    dragStartPos = pos;
+                    CaptureMouse();
+                    return;
                 }
             }
 
@@ -179,6 +203,7 @@ private:
                 Refresh(); // 刷新绘图
             }
         }
+
 
         void OnLeftUp(wxMouseEvent& event) {
             // 释放拖动标记

@@ -1,4 +1,4 @@
-﻿#include <wx/wx.h>          // 包含wxWidgets的所有头文件
+﻿#include<wx/wx.h>
 #include <wx/toolbar.h>
 #include <wx/filedlg.h>
 #include <wx/image.h>
@@ -16,7 +16,6 @@
 #endif
 
 #define ID_SHOW_TEXT_BOX 10003//手动定义指导教程文本标识符
-
 
 // 主框架类，继承自wxFrame
 class MyFrame : public wxFrame {
@@ -48,6 +47,7 @@ public:
         CreateStatusBar(1);
         SetStatusText("This is a model"); // 设置状态栏的文本
 
+        // 创建菜单栏，包含文件和帮助菜单
         // 创建菜单
         wxMenuBar* menuBar = new wxMenuBar;  // 创建菜单栏
         wxMenu* fileMenu = new wxMenu;  // 创建文件菜单
@@ -105,7 +105,7 @@ public:
         helpMenu->Append(ID_SHOW_TEXT_BOX, "Show Text Box", "Show a new text box");
         menuBar->Append(helpMenu, "&Help");  // 将帮助菜单添加到菜单栏
 
-        SetMenuBar(menuBar);  // 设置菜单栏
+
 
         SetMenuBar(menuBar); // 设置应用程序的菜单栏
         SetSize(800, 600); // 设置窗口的初始大小
@@ -125,8 +125,6 @@ public:
         subtoolbar->AddTool(3, "NOT Gate", wxArtProvider::GetBitmap(wxART_NEW)); // 添加非门图标
         subtoolbar->AddTool(4, "Delete", wxArtProvider::GetBitmap(wxART_NEW)); // 添加删除工具图标
         subtoolbar->Realize(); // 完成子工具栏的创建
-		auto subtoolOpen = subtoolbar->AddTool(wxID_OPEN, "Open", wxArtProvider::GetBitmap(wxART_FILE_OPEN));
-		auto subtoolSave = subtoolbar->AddTool(wxID_SAVE, "Save", wxArtProvider::GetBitmap(wxART_FILE_SAVE));
 
         // 设置子工具栏的大小和位置
         subtoolbar->SetSize(subPanel->GetClientSize()); // 将子工具栏的大小设置为子面板的客户区大小
@@ -136,6 +134,8 @@ public:
         subPanel->Bind(wxEVT_SIZE, [subtoolbar](wxSizeEvent& event) {
             subtoolbar->SetSize(event.GetSize()); // 更新子工具栏的大小
             event.Skip(); // 继续处理事件
+            });
+
         // 绑定菜单事件，响应用户的菜单操作
         Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT); // 绑定退出事件
         Bind(wxEVT_MENU, &MyFrame::OnAbout, this, wxID_ABOUT); // 绑定关于事件
@@ -149,9 +149,12 @@ public:
         // 绑定子工具栏事件，响应工具选择
         subtoolbar->Bind(wxEVT_TOOL, &MyFrame::OnSelectTool, this); // 绑定工具选择事件
 
-        Bind(wxEVT_MENU, &MyFrame::OnOpen, this, wxID_OPEN);  // 绑定打开文件事件
-        Bind(wxEVT_MENU, &MyFrame::OnSave, this, wxID_SAVE);  // 绑定保存文件事件
     }
+
+private:
+    wxTreeCtrl* treeCtrl;   // 树控件指针，用于显示和操作树形结构的控件
+    wxTextCtrl* textBox;    // 文本框指针，用于显示和编辑文本内容的控件
+
     class DrawPanel : public wxPanel {
     public:
         enum class Tool { NONE, AND_GATE, OR_GATE, NOT_GATE }; // 定义工具类型，包括无工具、与门、或门和非门
@@ -325,8 +328,6 @@ public:
     DrawPanel* drawPanel;
 
     // 处理退出事件
-private:
-    // 退出事件处理函数
     void OnExit(wxCommandEvent& event) {
         Close(true); // 关闭应用程序窗口
     }
@@ -381,7 +382,6 @@ private:
             break;
         }
     }
-
     // 最大化窗口
     void OnMaximize(wxCommandEvent& event) {
         Maximize(true);
@@ -455,7 +455,6 @@ private:
             textBox->SetValue("Content for Guide 5: Duis aute irure dolor in reprehenderit...");
         }
     }
-
 
 };
 

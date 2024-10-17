@@ -1,11 +1,11 @@
-﻿#include <wx/wx.h>          // 包含 wxWidgets 的核心头文件
-#include <wx/toolbar.h>     // 包含工具栏的相关功能
-#include <wx/filedlg.h>     // 包含文件对话框的功能
-#include <wx/image.h>       // 包含图像处理的功能
-#include <wx/artprov.h>     // 包含工具栏图标的功能
+﻿#include <wx/wx.h>
+#include <wx/toolbar.h>
+#include <wx/filedlg.h>
+#include <wx/image.h>
+#include <wx/artprov.h>
+#include <vector>
 #include <wx/frame.h>       // 包含框架窗口相关功能
 #include <wx/treectrl.h>    // 包含树控件的相关功能
-
 
 #ifndef wxID_MAXIMIZE
 #define wxID_MAXIMIZE 10001// 手动定义最大化标识符
@@ -16,36 +16,41 @@
 #endif
 
 #define ID_SHOW_TEXT_BOX 10003//手动定义指导教程文本标识符
+#define ID_SELECT_ALL 10004//手动定义全选菜单标识符
+#define ID_CUT 10005//手动定义剪切菜单标识符
+#define ID_COPY 10006//手动定义复制菜单标识符
+#define ID_PASTE 10007//手动定义粘贴菜单标识符
 
-// 定义主框架类 MyFrame，继承自 wxFrame
+
+// 主框架类，继承自wxFrame
 class MyFrame : public wxFrame {
 public:
-    MyFrame()  // 构造函数
-        : wxFrame(nullptr, wxID_ANY, "EDA Example") { // 初始化父类 wxFrame
+    // 构造函数
+    MyFrame()
+        : wxFrame(nullptr, wxID_ANY, "EDA Example") {
 
-        // 创建面板
-        wxPanel* panel = new wxPanel(this);  // 创建面板，作为主窗口的子窗口
-        panel->SetBackgroundColour(*wxLIGHT_GREY);  // 设置面板背景颜色
+        // 创建主面板，作为应用程序的基本界面
+        wxPanel* panel = new wxPanel(this);
+        panel->SetBackgroundColour(*wxLIGHT_GREY); // 设置主面板的背景颜色为浅灰色
 
-        // 创建水平布局管理器
+        // 创建水平布局管理器，用于管理子面板和绘图面板的布局
         wxBoxSizer* hbox = new wxBoxSizer(wxHORIZONTAL);
 
-        // 创建子面板
+        // 创建子面板，作为工具栏和其他控件的容器
         wxPanel* subPanel = new wxPanel(panel, wxID_ANY);
-        subPanel->SetBackgroundColour(*wxLIGHT_GREY);
-        hbox->Add(subPanel, 2, wxEXPAND | wxALL, 10);
+        subPanel->SetBackgroundColour(*wxLIGHT_GREY); // 设置子面板的背景颜色为浅灰色
+        hbox->Add(subPanel, 2, wxEXPAND | wxALL, 10); // 将子面板添加到布局中，比例为2，允许扩展，并添加边距
 
-        // 创建画板
-        wxPanel* drawPanel = new wxPanel(panel, wxID_ANY);
-        drawPanel->SetBackgroundColour(*wxWHITE);
-        hbox->Add(drawPanel, 8, wxEXPAND | wxALL, 10);
-        //设置水平布局管理器
+        // 创建绘图面板，用于显示和绘制电子元件
+        drawPanel = new DrawPanel(panel);
+        hbox->Add(drawPanel, 8, wxEXPAND | wxALL, 10); // 将绘图面板添加到布局中，比例为8，允许扩展，并添加边距
+
+        // 设置主面板的布局管理器为hbox
         panel->SetSizer(hbox);
 
-
-        // 创建状态栏
-        CreateStatusBar(1);  // 创建状态栏，显示一行
-        SetStatusText("This is a model");  // 设置状态栏文本
+        // 创建状态栏，显示应用程序状态
+        CreateStatusBar(1);
+        SetStatusText("This is a model"); // 设置状态栏的文本
 
         // 创建菜单
         wxMenuBar* menuBar = new wxMenuBar;  // 创建菜单栏
@@ -61,13 +66,12 @@ public:
         // 创建编辑菜单
         wxMenu* editMenu = new wxMenu;
         //向编辑菜单中添加项
-        editMenu->Append(wxID_ANY, "Cut\tCtrl+Z");
+        editMenu->Append(ID_CUT, "Cut\tCtrl+X"); // 使用自定义 wxID
         editMenu->AppendSeparator();//添加分隔符
-        editMenu->Append(wxID_ANY, "Paste\tCtrl+X");
-        editMenu->Append(wxID_ANY, "Copy\tCtrl+C");
-        editMenu->Append(wxID_ANY, "Paste\tCtrl+V");
+        editMenu->Append(ID_COPY, "Copy\tCtrl+C");
+        editMenu->Append(ID_PASTE, "Paste\tCtrl+V");
         editMenu->AppendSeparator();//添加分隔符
-        editMenu->Append(wxID_ANY, "Select All\tCtrl+A");
+        editMenu->Append(ID_SELECT_ALL, "Select All\tCtrl+A");
         menuBar->Append(editMenu, "Edit"); // 将编辑菜单添加到菜单栏
 
         // 创建项目菜单
@@ -104,51 +108,52 @@ public:
         helpMenu->Append(ID_SHOW_TEXT_BOX, "Show Text Box", "Show a new text box");
         menuBar->Append(helpMenu, "&Help");  // 将帮助菜单添加到菜单栏
 
-        SetMenuBar(menuBar);  // 设置菜单栏
 
-        // 设置窗口大小并显示
-        SetSize(800, 600);
-        Show(true);  // 显示窗口
+        SetMenuBar(menuBar); // 设置应用程序的菜单栏
+        SetSize(800, 600); // 设置窗口的初始大小
+        Show(true); // 显示窗口
 
-        // 创建水平工具栏
-        wxToolBar* toolbar = CreateToolBar(wxTB_HORIZONTAL | wxTB_TEXT);
-        // 添加工具栏项
-        auto toolNew = toolbar->AddTool(wxID_NEW, "New", wxArtProvider::GetBitmap(wxART_NEW));
-        auto toolOpen = toolbar->AddTool(wxID_OPEN, "Open", wxArtProvider::GetBitmap(wxART_FILE_OPEN));
-        auto toolSave = toolbar->AddTool(wxID_SAVE, "Save", wxArtProvider::GetBitmap(wxART_FILE_SAVE));
+        // 创建工具栏，用于快速访问功能
+        wxToolBar* toolbar = CreateToolBar(wxTB_HORIZONTAL | wxTB_TEXT); // 创建水平工具栏
+        toolbar->AddTool(wxID_NEW, "New", wxArtProvider::GetBitmap(wxART_NEW)); // 添加新建工具图标
+        toolbar->AddTool(wxID_OPEN, "Open", wxArtProvider::GetBitmap(wxART_FILE_OPEN)); // 添加打开工具图标
+        toolbar->AddTool(wxID_SAVE, "Save", wxArtProvider::GetBitmap(wxART_FILE_SAVE)); // 添加保存工具图标
+        toolbar->Realize(); // 完成工具栏的创建
 
-        //实现工具栏
-        toolbar->Realize();
-
-        //基于侧面面板创建侧面工具栏
+        // 创建子工具栏，用于选择不同的电子元件
         wxToolBar* subtoolbar = new wxToolBar(subPanel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTB_VERTICAL | wxNO_BORDER);
-        //添加工具栏项
-        auto subtoolNew = subtoolbar->AddTool(wxID_NEW, "New", wxArtProvider::GetBitmap(wxART_NEW));
-        auto subtoolOpen = subtoolbar->AddTool(wxID_OPEN, "Open", wxArtProvider::GetBitmap(wxART_FILE_OPEN));
-        auto subtoolSave = subtoolbar->AddTool(wxID_SAVE, "Save", wxArtProvider::GetBitmap(wxART_FILE_SAVE));
+        subtoolbar->AddTool(1, "AND Gate", wxArtProvider::GetBitmap(wxART_NEW)); // 添加与门图标
+        subtoolbar->AddTool(2, "OR Gate", wxArtProvider::GetBitmap(wxART_NEW)); // 添加或门图标
+        subtoolbar->AddTool(3, "NOT Gate", wxArtProvider::GetBitmap(wxART_NEW)); // 添加非门图标
+        subtoolbar->AddTool(4, "Delete", wxArtProvider::GetBitmap(wxART_NEW)); // 添加删除工具图标
+        subtoolbar->Realize(); // 完成子工具栏的创建
 
+        // 设置子工具栏的大小和位置
+        subtoolbar->SetSize(subPanel->GetClientSize()); // 将子工具栏的大小设置为子面板的客户区大小
+        subtoolbar->SetPosition(wxPoint(0, 0)); // 设置子工具栏的位置为(0, 0)
 
-        // 实现工具栏
-        subtoolbar->Realize();
-        // 设置工具栏大小和位置，使其填满子面板
-        subtoolbar->SetSize(subPanel->GetClientSize());
-        subtoolbar->SetPosition(wxPoint(0, 0));
-        // 绑定子面板大小变化事件，以便在子面板大小变化时调整工具栏大小
+        // 绑定子面板大小变化事件，确保子工具栏在大小变化时也跟随调整
         subPanel->Bind(wxEVT_SIZE, [subtoolbar](wxSizeEvent& event) {
-            subtoolbar->SetSize(event.GetSize());
-            event.Skip();
+            subtoolbar->SetSize(event.GetSize()); // 更新子工具栏的大小
+            event.Skip(); // 继续处理事件
             });
 
-        // 绑定事件到相应的处理函数
-        Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);  // 绑定退出事件
-        Bind(wxEVT_MENU, &MyFrame::OnAbout, this, wxID_ABOUT);  // 绑定关于事件
-        Bind(wxEVT_MENU, &MyFrame::OnNew, this, wxID_NEW);  // 绑定新建文件事件
-        Bind(wxEVT_MENU, &MyFrame::OnOpen, this, wxID_OPEN);  // 绑定打开文件事件
-        Bind(wxEVT_MENU, &MyFrame::OnSave, this, wxID_SAVE);  // 绑定保存文件事件
+        // 绑定菜单事件，响应用户的菜单操作
+        Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT); // 绑定退出事件
+        Bind(wxEVT_MENU, &MyFrame::OnAbout, this, wxID_ABOUT); // 绑定关于事件
+        Bind(wxEVT_MENU, &MyFrame::OnNew, this, wxID_NEW); // 绑定新建事件
+        Bind(wxEVT_MENU, &MyFrame::OnOpen, this, wxID_OPEN); // 绑定打开事件
+        Bind(wxEVT_MENU, &MyFrame::OnSave, this, wxID_SAVE); // 绑定保存事件
         Bind(wxEVT_MENU, &MyFrame::OnMaximize, this, wxID_MAXIMIZE); // 绑定最大化事件
         Bind(wxEVT_MENU, &MyFrame::OnMinimize, this, wxID_MINIMIZE); // 绑定最小化事件
         Bind(wxEVT_MENU, &MyFrame::OnCloseWindow, this, wxID_CLOSE); // 绑定关闭事件
-        Bind(wxEVT_MENU, &MyFrame::OnShowTextBox, this, ID_SHOW_TEXT_BOX);
+        Bind(wxEVT_MENU, &MyFrame::OnShowTextBox, this, ID_SHOW_TEXT_BOX);//绑定help指导文档
+        Bind(wxEVT_MENU, &MyFrame::OnSelectAll, this, ID_SELECT_ALL); // 绑定选择所有事件
+        Bind(wxEVT_MENU, &MyFrame::OnCopy, this, ID_COPY); // 绑定复制事件
+        Bind(wxEVT_MENU, &MyFrame::OnPaste, this, ID_PASTE); // 绑定粘贴事件
+        Bind(wxEVT_MENU, &MyFrame::OnCut, this, ID_CUT); // 绑定剪切事件
+        // 绑定子工具栏事件，响应工具选择
+        subtoolbar->Bind(wxEVT_TOOL, &MyFrame::OnSelectTool, this); // 绑定工具选择事件
 
     }
 
@@ -156,53 +161,246 @@ private:
     wxTreeCtrl* treeCtrl;   // 树控件指针，用于显示和操作树形结构的控件
     wxTextCtrl* textBox;    // 文本框指针，用于显示和编辑文本内容的控件
 
-    // 退出事件处理函数
+    class DrawPanel : public wxPanel {
+        friend class MyFrame; // 声明 MyFrame 为友元类,使得wxframe能够访问DrawPanel的私有方法
+    public:
+        enum class Tool { NONE, AND_GATE, OR_GATE, NOT_GATE }; // 定义工具类型，包括无工具、与门、或门和非门
+
+        DrawPanel(wxWindow* parent)
+            : wxPanel(parent), currentTool(Tool::NONE), dragging(false) {
+            // 构造函数，初始化面板及背景颜色
+            SetBackgroundColour(*wxWHITE);
+            // 绑定事件
+            Bind(wxEVT_PAINT, &DrawPanel::OnPaint, this); // 绘制事件
+            Bind(wxEVT_LEFT_DOWN, &DrawPanel::OnLeftDown, this); // 左键按下事件
+            Bind(wxEVT_LEFT_UP, &DrawPanel::OnLeftUp, this); // 左键抬起事件
+            Bind(wxEVT_MOTION, &DrawPanel::OnMouseMove, this); // 鼠标移动事件
+            Bind(wxEVT_RIGHT_DOWN, &DrawPanel::OnRightDown, this); // 右键按下事件
+            Bind(wxEVT_SIZE, &DrawPanel::OnSize, this); // 面板大小变化事件
+        }
+
+        void SetCurrentTool(Tool tool) {
+            currentTool = tool; // 设置当前选择的工具
+        }
+
+    private:
+        Tool currentTool; // 当前工具
+        std::vector<std::pair<Tool, wxPoint>> components; // 存储已添加的组件及其位置        
+        std::vector<int> selectedComponents;// 存储选中的组件
+        std::vector<std::pair<Tool, wxPoint>> copiedComponents; // 存储复制的组件
+        bool dragging; // 标记是否正在拖动组件
+        int draggedComponentIndex; // 被拖动的组件索引
+        wxPoint dragStartPos; // 拖动开始位置
+
+        void OnPaint(wxPaintEvent& event) {
+            wxPaintDC dc(this); // 创建绘图设备上下文
+            DrawGrid(dc); // 绘制网格
+            for (const auto& component : components) {
+                DrawComponent(dc, component.first, component.second); // 绘制每个组件
+            }
+        }
+
+        // 选择所有组件
+        void SelectAll() {
+            selectedComponents.clear(); // 清空之前的选择
+            for (size_t i = 0; i < components.size(); ++i) {
+                selectedComponents.push_back(i); // 将所有组件索引添加到选中列表
+            }
+            Refresh(); // 刷新绘图
+        }
+        
+        // 删除选中的组件
+        void CutSelected() {
+            for (auto it = selectedComponents.rbegin(); it != selectedComponents.rend(); ++it) {
+                components.erase(components.begin() + *it); // 从 components 中删除
+            }
+            selectedComponents.clear(); // 清空选中的组件
+            Refresh(); // 刷新绘图
+        }
+
+        //复制选中的组件
+        void CopySelected() {
+            copiedComponents.clear(); // 清空之前的复制内容
+            for (int index : selectedComponents) {
+                if (index >= 0 && index < components.size()) {
+                    copiedComponents.push_back(components[index]); // 复制组件
+                }
+            }
+        }
+
+        //粘贴选中的组件
+        void PasteCopied() {
+            for (const auto& component : copiedComponents) {
+                // 在复制组件的位置上进行粘贴，稍微调整位置
+                wxPoint newPosition = component.second + wxPoint(10, 10); // 偏移位置
+                components.push_back({ component.first, newPosition }); // 添加到组件列表中
+            }
+            Refresh(); // 刷新绘图
+        }
+
+        void DrawGrid(wxDC& dc) {
+            dc.SetPen(*wxLIGHT_GREY_PEN); // 设置网格线颜色
+            for (int i = 0; i < GetSize().GetWidth(); i += 20) {
+                dc.DrawLine(i, 0, i, GetSize().GetHeight()); // 绘制垂直网格线
+            }
+            for (int j = 0; j < GetSize().GetHeight(); j += 20) {
+                dc.DrawLine(0, j, GetSize().GetWidth(), j); // 绘制水平网格线
+            }
+        }
+
+        void DrawComponent(wxDC& dc, Tool tool, const wxPoint& pos) {
+            // 将组件位置对齐到最近的网格点
+            int gridX = (pos.x / 20) * 20;
+            int gridY = (pos.y / 20) * 20;
+            wxPoint snapPoint(gridX, gridY);
+
+            // 根据工具类型绘制对应的组件
+            if (tool == Tool::AND_GATE) {
+                dc.SetBrush(*wxGREEN_BRUSH);
+                dc.DrawRectangle(snapPoint.x - 10, snapPoint.y - 10, 20, 20); // 绘制与门
+            }
+            else if (tool == Tool::OR_GATE) {
+                dc.SetBrush(*wxYELLOW_BRUSH);
+                dc.DrawEllipse(snapPoint.x - 15, snapPoint.y - 10, 30, 20); // 绘制或门
+            }
+            else if (tool == Tool::NOT_GATE) {
+                dc.SetBrush(*wxRED_BRUSH);
+                dc.DrawRectangle(snapPoint.x - 10, snapPoint.y - 10, 20, 20); // 绘制非门
+            }
+        }
+
+        void OnLeftDown(wxMouseEvent& event) {
+            wxPoint pos = event.GetPosition(); // 获取鼠标点击位置
+            // 检查是否点击在现有组件上
+            for (size_t i = 0; i < components.size(); ++i) {
+                if (abs(components[i].second.x - pos.x) < 20 && abs(components[i].second.y - pos.y) < 20) {
+                    dragging = true; // 标记为正在拖动
+                    draggedComponentIndex = i; // 记录被拖动的组件索引
+                    dragStartPos = pos; // 记录拖动开始位置
+                    CaptureMouse(); // 捕获鼠标事件
+                    return; // 退出函数
+                }
+            }
+
+            // 如果没有拖动组件并且选择了工具，则添加新组件
+            if (currentTool != Tool::NONE) {
+                components.emplace_back(currentTool, pos); // 添加组件
+                Refresh(); // 刷新绘图
+            }
+        }
+
+        void OnLeftUp(wxMouseEvent& event) {
+            // 释放拖动标记
+            if (dragging) {
+                dragging = false;
+                ReleaseMouse(); // 释放鼠标捕获
+            }
+        }
+
+        void OnMouseMove(wxMouseEvent& event) {
+            // 如果正在拖动组件
+            if (dragging) {
+                wxPoint pos = event.GetPosition(); // 获取当前鼠标位置
+                // 计算偏移量
+                wxPoint offset = pos - dragStartPos;
+                // 更新组件位置
+                components[draggedComponentIndex].second += offset;
+                dragStartPos = pos; // 更新拖动开始位置
+                Refresh(); // 刷新绘图
+            }
+        }
+
+        void OnRightDown(wxMouseEvent& event) {
+            wxPoint pos = event.GetPosition(); // 获取鼠标点击位置
+            bool componentFound = false; // 标记是否找到组件
+            int componentToDelete = -1; // 记录要删除的组件索引
+
+            // 检查是否点击在现有组件上
+            for (size_t i = 0; i < components.size(); ++i) {
+                if (abs(components[i].second.x - pos.x) < 20 && abs(components[i].second.y - pos.y) < 20) {
+                    componentFound = true; // 找到组件
+                    componentToDelete = i; // 记录组件索引
+                    break; // 退出循环
+                }
+            }
+
+            // 如果找到组件，则显示删除菜单
+            if (componentFound) {
+                wxMenu menu; // 创建上下文菜单
+                menu.Append(wxID_ANY, "Delete"); // 添加删除选项
+                // 绑定菜单项的事件
+                Bind(wxEVT_MENU, [this, componentToDelete](wxCommandEvent&) {
+                    if (componentToDelete != -1) {
+                        components.erase(components.begin() + componentToDelete); // 删除组件
+                        Refresh(); // 刷新绘图
+                    }
+                    }, wxID_ANY); // 使用绑定的命令ID
+                PopupMenu(&menu); // 显示菜单
+            }
+        }
+
+        void OnSize(wxSizeEvent& event) {
+            Refresh(); // 面板大小改变时刷新绘图
+            event.Skip(); // 继续处理其他事件
+        }
+    };
+
+
+    // 声明绘图面板指针，用于操作绘制的组件
+    DrawPanel* drawPanel;
+
+    // 处理退出事件
     void OnExit(wxCommandEvent& event) {
-        Close(true);  // 关闭窗口
+        Close(true); // 关闭应用程序窗口
     }
 
-    // 关于事件处理函数
+    // 处理关于对话框事件
     void OnAbout(wxCommandEvent& event) {
-        wxMessageBox("This is a wxWidgets EDA application.", "About My Application", wxOK | wxICON_INFORMATION);  // 显示关于对话框
+        // 显示关于信息的对话框
+        wxMessageBox("This is a wxWidgets EDA application.", "About My Application", wxOK | wxICON_INFORMATION);
     }
 
-    // 新建文件事件处理函数
+    // 处理新建文件事件
     void OnNew(wxCommandEvent& event) {
-        wxLogMessage("New file created!");  // 日志输出新建文件消息
+        drawPanel->Refresh(); // 刷新绘图面板以清空内容
+        wxLogMessage("New file created!"); // 在日志中记录新建文件的操作
     }
 
-    // 打开文件事件处理函数
+    // 处理打开文件事件
     void OnOpen(wxCommandEvent& event) {
-        // 创建文件打开对话框
+        // 创建文件对话框，允许用户选择要打开的文件
         wxFileDialog openFileDialog(this, "Open File", "", "", "All files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-        if (openFileDialog.ShowModal() == wxID_OK) {  // 如果用户选择了文件
-            wxString path = openFileDialog.GetPath();  // 获取文件路径
-            wxLogMessage("Opened file: %s", path);  // 日志输出打开的文件路径
+        if (openFileDialog.ShowModal() == wxID_OK) { // 显示对话框并检查用户是否选择了文件
+            wxString path = openFileDialog.GetPath(); // 获取选定文件的路径
+            wxLogMessage("Opened file: %s", path); // 在日志中记录打开文件的路径
         }
     }
 
-    // 保存文件事件处理函数
+    // 处理保存文件事件
     void OnSave(wxCommandEvent& event) {
-        // 创建文件保存对话框
+        // 创建文件对话框，允许用户选择保存的文件位置和名称
         wxFileDialog saveFileDialog(this, "Save File", "", "", "All files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-        if (saveFileDialog.ShowModal() == wxID_OK) {  // 如果用户选择了文件
-            wxString path = saveFileDialog.GetPath();  // 获取文件路径
-            wxLogMessage("Saved file: %s", path);  // 日志输出保存的文件路径
+        if (saveFileDialog.ShowModal() == wxID_OK) { // 显示对话框并检查用户是否选择了文件
+            wxString path = saveFileDialog.GetPath(); // 获取用户选择的文件路径
+            wxLogMessage("Saved file: %s", path); // 在日志中记录保存文件的路径
         }
     }
 
-
-    // 工具栏点击事件处理函数
-    void OnToolClicked(wxCommandEvent& event) {
-        switch (event.GetId()) {  // 根据事件 ID 选择处理函数
-        case wxID_NEW:
-            OnNew(event);  // 调用新建文件处理函数
+    // 处理选择工具事件
+    void OnSelectTool(wxCommandEvent& event) {
+        int toolId = event.GetId(); // 获取被选择工具的ID
+        switch (toolId) { // 根据工具ID选择相应的工具
+        case 1: // 选择与门工具
+            drawPanel->SetCurrentTool(DrawPanel::Tool::AND_GATE);
             break;
-        case wxID_OPEN:
-            OnOpen(event);  // 调用打开文件处理函数
+        case 2: // 选择或门工具
+            drawPanel->SetCurrentTool(DrawPanel::Tool::OR_GATE);
             break;
-        case wxID_SAVE:
-            OnSave(event);  // 调用保存文件处理函数
+        case 3: // 选择非门工具
+            drawPanel->SetCurrentTool(DrawPanel::Tool::NOT_GATE);
+            break;
+        case 4: // 删除工具逻辑不再需要，因为使用右键菜单删除
+            // 这里可以选择什么也不做
             break;
         }
     }
@@ -220,6 +418,26 @@ private:
     // 关闭窗口
     void OnCloseWindow(wxCommandEvent& event) {
         Close(true);
+    }
+
+    // 选择所有的事件处理函数
+    void OnSelectAll(wxCommandEvent& event) {
+        drawPanel->SelectAll(); // 调用 DrawPanel 中的 SelectAll 方法
+    }
+
+    //复制选中的事件处理函数
+    void OnCopy(wxCommandEvent& event) {
+        drawPanel->CopySelected(); // 调用 DrawPanel 中的 CopySelected 方法
+    }
+
+    //粘贴复制的事件处理函数
+    void OnPaste(wxCommandEvent& event) {
+        drawPanel->PasteCopied(); // 调用 DrawPanel 中的 PasteCopied 方法
+    }
+
+    // 剪切的事件处理函数
+    void OnCut(wxCommandEvent& event) {
+        drawPanel->CutSelected(); // 调用 DrawPanel 中的 CutSelected 方法
     }
 
     //添加help菜单下的指导文档
@@ -281,16 +499,16 @@ private:
         }
     }
 
+
 };
 
-// 定义应用程序类 MyApp，继承自 wxApp
 class MyApp : public wxApp {
 public:
-    virtual bool OnInit() {  // 应用程序初始化函数
-        MyFrame* frame = new MyFrame();  // 创建主窗口
-        return true;  // 返回 true 表示初始化成功
+    virtual bool OnInit() {
+        MyFrame* frame = new MyFrame();
+        return true;
     }
 };
 
-// 实现 wxWidgets 应用程序
+// 实现应用程序入口点
 wxIMPLEMENT_APP(MyApp);

@@ -1,4 +1,4 @@
-﻿﻿#include <wx/wx.h>
+﻿#include <wx/wx.h>          // 包含wxWidgets的所有头文件
 #include <wx/toolbar.h>
 #include <wx/filedlg.h>
 #include <wx/image.h>

@@ -6,6 +6,9 @@
 #include <vector>
 #include <wx/frame.h>       // 包含框架窗口相关功能
 #include <wx/treectrl.h>    // 包含树控件的相关功能
+#include <fstream>
+#include <nlohmann/json.hpp>
+using namespace nlohmann;
 
 #ifndef wxID_MAXIMIZE
 #define wxID_MAXIMIZE 10001// 手动定义最大化标识符
@@ -151,7 +154,7 @@ public:
 
     }
 
-private:
+    //private:
     wxTreeCtrl* treeCtrl;   // 树控件指针，用于显示和操作树形结构的控件
     wxTextCtrl* textBox;    // 文本框指针，用于显示和编辑文本内容的控件
 
@@ -182,7 +185,7 @@ private:
             currentTool = tool; // 设置当前选择的工具
         }
 
-    private:
+        //private:
         Tool currentTool; // 当前工具
         std::vector<std::pair<Tool, wxPoint>> components; // 存储已添加的组件及其位置
         bool dragging; // 标记是否正在拖动组件
@@ -338,29 +341,82 @@ private:
         wxMessageBox("This is a wxWidgets EDA application.", "About My Application", wxOK | wxICON_INFORMATION);
     }
 
-    // 处理新建文件事件
+    // 处理新建窗口事件
     void OnNew(wxCommandEvent& event) {
-        drawPanel->Refresh(); // 刷新绘图面板以清空内容
-        wxLogMessage("New file created!"); // 在日志中记录新建文件的操作
+        // 创建一个新的 MyFrame 窗口
+        MyFrame* newFrame = new MyFrame();
+        newFrame->Show(true); // 显示新窗口
     }
 
     // 处理打开文件事件
     void OnOpen(wxCommandEvent& event) {
         // 创建文件对话框，允许用户选择要打开的文件
-        wxFileDialog openFileDialog(this, "Open File", "", "", "All files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+        wxFileDialog openFileDialog(this, "Open File", "", "", "JSON files (*.json)|*.json", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
         if (openFileDialog.ShowModal() == wxID_OK) { // 显示对话框并检查用户是否选择了文件
             wxString path = openFileDialog.GetPath(); // 获取选定文件的路径
-            wxLogMessage("Opened file: %s", path); // 在日志中记录打开文件的路径
+            //wxLogMessage("Opened file: %s", path); // 在日志中记录打开文件的路径
+
+            // 读取文件内容
+            std::ifstream file(path.ToStdString());
+            if (file.is_open()) {
+                json all_component;
+                file >> all_component; // 解析JSON文件内容
+
+                // 清空当前组件
+                drawPanel->components.clear();
+
+                // 将JSON对象转换为组件
+                for (const auto& component_json : all_component) {
+                    DrawPanel::Tool type = static_cast<DrawPanel::Tool>(component_json["type"].get<int>());
+                    int x = component_json["x"].get<int>();
+                    int y = component_json["y"].get<int>();
+                    drawPanel->components.emplace_back(type, wxPoint(x, y));
+                }
+
+                // 更新绘图面板
+                drawPanel->Refresh();
+            }
+            else {
+                wxLogError("Cannot open file '%s'.", path);
+            }
         }
     }
 
     // 处理保存文件事件
     void OnSave(wxCommandEvent& event) {
-        // 创建文件对话框，允许用户选择保存的文件位置和名称
-        wxFileDialog saveFileDialog(this, "Save File", "", "", "All files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-        if (saveFileDialog.ShowModal() == wxID_OK) { // 显示对话框并检查用户是否选择了文件
-            wxString path = saveFileDialog.GetPath(); // 获取用户选择的文件路径
-            wxLogMessage("Saved file: %s", path); // 在日志中记录保存文件的路径
+        // 创建文件夹对话框，允许用户选择保存的文件夹位置
+        wxDirDialog saveDirDialog(this, "Select Directory", "", wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
+        if (saveDirDialog.ShowModal() == wxID_OK) { // 显示对话框并检查用户是否选择了文件夹
+            wxString dirPath = saveDirDialog.GetPath(); // 获取用户选择的文件夹路径
+
+            // 创建输入对话框，允许用户输入文件名
+            wxTextEntryDialog fileNameDialog(this, "Enter file name", "File Name", "new_file");
+            if (fileNameDialog.ShowModal() == wxID_OK) { // 显示对话框并检查用户是否输入了文件名
+                wxString fileName = fileNameDialog.GetValue() + ".json"; // 获取用户输入的文件名
+
+                // 创建新文件的完整路径
+                wxString filePath = dirPath + "/" + fileName;
+
+                // 创建JSON对象
+                json all_component;
+                for (const auto& component : drawPanel->components) {
+                    json component_json;
+                    component_json["type"] = static_cast<int>(component.first);
+                    component_json["x"] = component.second.x;
+                    component_json["y"] = component.second.y;
+                    all_component.push_back(component_json);
+                }
+
+                // 将JSON对象写入文件
+                std::ofstream file(filePath.ToStdString());
+                if (file.is_open()) {
+                    file << all_component.dump(4);
+                    file.close();
+                }
+                else {
+                    wxLogError("Cannot save file '%s'.", filePath);
+                }
+            }
         }
     }
 

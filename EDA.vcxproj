@@ -108,7 +108,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(WXWIN)\include;$(WXWIN)\include\msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\VS\json;$(WXWIN)\include;$(WXWIN)\include\msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -124,7 +124,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(WXWIN)\include;$(WXWIN)\include\msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\VS\json;$(WXWIN)\include;$(WXWIN)\include\msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -136,6 +136,53 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\json\include\nlohmann\adl_serializer.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\byte_container_with_subtype.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\abi_macros.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\conversions\from_json.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\conversions\to_chars.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\conversions\to_json.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\exceptions.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\hash.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\input\binary_reader.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\input\input_adapters.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\input\json_sax.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\input\lexer.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\input\parser.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\input\position_t.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\iterators\internal_iterator.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\iterators\iteration_proxy.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\iterators\iterator_traits.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\iterators\iter_impl.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\iterators\json_reverse_iterator.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\iterators\primitive_iterator.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\json_custom_base_class.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\json_pointer.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\json_ref.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\macro_scope.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\macro_unscope.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\meta\call_std\begin.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\meta\call_std\end.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\meta\cpp_future.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\meta\detected.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\meta\identity_tag.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\meta\is_sax.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\meta\std_fs.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\meta\type_traits.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\meta\void_t.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\output\binary_writer.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\output\output_adapters.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\output\serializer.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\string_concat.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\string_escape.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\detail\value_t.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\json.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\json_fwd.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\ordered_map.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\thirdparty\hedley\hedley.hpp" />
+    <ClInclude Include="..\..\json\include\nlohmann\thirdparty\hedley\hedley_undef.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

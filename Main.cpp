@@ -1,4 +1,4 @@
-﻿#include<wx/wx.h>
+﻿#include <wx/wx.h>
 #include <wx/toolbar.h>
 #include <wx/filedlg.h>
 #include <wx/image.h>
@@ -242,7 +242,6 @@ public:
             wxPoint snapPoint(gridX, gridY);
             // 根据工具类型绘制对应的组件
             if (tool == Tool::AND_GATE) {
-                wxPoint points[5] = {
                 wxPoint points[4] = {
                     wxPoint(snapPoint.x - 20, snapPoint.y - 20), // 左上
                     wxPoint(snapPoint.x , snapPoint.y - 20), // 右上

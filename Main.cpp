@@ -1,4 +1,5 @@
 ﻿#include <wx/wx.h>
+#include <wx/dcbuffer.h>
 #include <wx/toolbar.h>
 #include <wx/filedlg.h>
 #include <wx/image.h>
@@ -174,11 +175,13 @@ public:
     public:
         enum class Tool { NONE, AND_GATE, OR_GATE, NOT_GATE }; // 定义工具类型，包括无工具、与门、或门和非门
         wxBitmap* bitmap = nullptr;// 新增位图指针
+        wxTimer* moveTimer;
 
         DrawPanel(wxWindow* parent)
-            : wxPanel(parent), currentTool(Tool::NONE), dragging(false) {
+            : wxPanel(parent), currentTool(Tool::NONE), dragging(false), moveTimer(new wxTimer(this)){
             // 构造函数，初始化面板及背景颜色
             SetBackgroundColour(*wxWHITE);
+            SetBackgroundStyle(wxBG_STYLE_PAINT);
             bitmap = new wxBitmap(GetSize()); // 初始化位图
             // 绑定事件
             Bind(wxEVT_PAINT, &DrawPanel::OnPaint, this); // 绘制事件
@@ -187,10 +190,14 @@ public:
             Bind(wxEVT_MOTION, &DrawPanel::OnMouseMove, this); // 鼠标移动事件
             Bind(wxEVT_RIGHT_DOWN, &DrawPanel::OnRightDown, this); // 右键按下事件
             Bind(wxEVT_SIZE, &DrawPanel::OnSize, this); // 面板大小变化事件
+            Bind(wxEVT_TIMER, &DrawPanel::OnMoveTimer, this);// 绑定定时器事件
+
+
         }
 
         ~DrawPanel() {
             delete bitmap; // 释放位图内存
+            delete moveTimer; // 释放定时器内存
         }
 
         void SetCurrentTool(Tool tool) {
@@ -207,22 +214,17 @@ public:
         wxPoint dragStartPos; // 拖动开始位置
 
         void OnPaint(wxPaintEvent& event) {
-            if (!bitmap || bitmap->GetSize() != GetSize()) {
-                delete bitmap;  // 删除旧位图
-                bitmap = new wxBitmap(GetSize()); // 创建新的位图
-            }
-            Render(*bitmap); // 每次绘制都更新位图
-            wxPaintDC dc(this);
-            dc.DrawBitmap(*bitmap, 0, 0); // 将位图绘制到面板上
+            wxBufferedPaintDC dc(this);
+            PrepareDC(dc);
+            dc.SetBackground(*wxWHITE_BRUSH);
+            dc.Clear();
+            Render(dc);
         }
 
-        void Render(wxBitmap& bitmap) {
-            wxMemoryDC memDC(bitmap); // 使用内存DC绘制到位图
-            memDC.SetBackground(*wxWHITE_BRUSH);
-            memDC.Clear();
-            DrawGrid(memDC);
+        void Render(wxDC& dc) {
+            DrawGrid(dc);
             for (const auto& component : components) {
-                DrawComponent(memDC, component.first, component.second);
+                DrawComponent(dc, component.first, component.second);
             }
         }
 
@@ -296,8 +298,7 @@ public:
 
 
         void OnLeftDown(wxMouseEvent& event) {
-            wxPoint pos = event.GetPosition(); // 获取鼠标点击位置
-            // 检查是否点击在现有组件上
+            wxPoint pos = event.GetPosition();
             for (size_t i = 0; i < components.size(); ++i) {
                 if (abs(components[i].second.x - pos.x) < 20 && abs(components[i].second.y - pos.y) < 20) {
                     dragging = true;
@@ -308,10 +309,9 @@ public:
                 }
             }
 
-            // 如果没有拖动组件并且选择了工具，则添加新组件
-            if (currentTool != Tool::NONE) {
-                components.emplace_back(currentTool, pos); // 添加组件
-                Refresh(); // 刷新绘图
+            if (!dragging && currentTool != Tool::NONE) {
+                components.emplace_back(currentTool, pos);
+                Refresh();
             }
         }
 
@@ -325,17 +325,27 @@ public:
         }
 
         void OnMouseMove(wxMouseEvent& event) {
-            // 如果正在拖动组件
             if (dragging) {
-                wxPoint pos = event.GetPosition(); // 获取当前鼠标位置
-                // 计算偏移量
+                wxPoint pos = event.GetPosition();
                 wxPoint offset = pos - dragStartPos;
-                // 更新组件位置
-                components[draggedComponentIndex].second += offset;
-                dragStartPos = pos; // 更新拖动开始位置
-                Refresh(); // 刷新绘图
+
+                // 更新位置
+                wxPoint& componentPos = components[draggedComponentIndex].second;
+                componentPos += offset;
+                dragStartPos = pos;
+
+                // 重绘整个面板以确保清除残影
+                Refresh();
+                Update();
             }
         }
+
+        // 添加一个新的方法处理定时器事件
+        void OnMoveTimer(wxTimerEvent&) {
+            Refresh(); // 刷新绘图
+            moveTimer->Stop(); // 停止定时器
+        }
+
 
         void OnRightDown(wxMouseEvent& event) {
             wxPoint pos = event.GetPosition(); // 获取鼠标点击位置

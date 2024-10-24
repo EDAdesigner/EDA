@@ -242,7 +242,6 @@ public:
             wxPoint snapPoint(gridX, gridY);
             // 根据工具类型绘制对应的组件
             if (tool == Tool::AND_GATE) {
-                wxPoint points[5] = {
                 wxPoint points[4] = {
                     wxPoint(snapPoint.x - 20, snapPoint.y - 20), // 左上
                     wxPoint(snapPoint.x , snapPoint.y - 20), // 右上
@@ -250,7 +249,6 @@ public:
                     wxPoint(snapPoint.x - 20, snapPoint.y + 20)  // 左下
                 };
                 dc.SetPen(wxPen(*wxBLACK, 4)); // 边框颜色和宽度
-                dc.DrawPolygon(4, points); // 绘制与门
                 dc.DrawPolygon(4, points); // 绘制与门左侧部分
                 dc.DrawArc(snapPoint.x, snapPoint.y + 20, snapPoint.x, snapPoint.y - 20, snapPoint.x, snapPoint.y); // 绘制圆边
                 wxRect rect(snapPoint.x - 10, snapPoint.y - 17, 12, 35);
@@ -263,25 +261,26 @@ public:
                 dc.DrawLine(snapPoint.x + 20, snapPoint.y, snapPoint.x + 25, snapPoint.y);
             }
             else if (tool == Tool::OR_GATE) {
-                dc.SetBrush(*wxYELLOW_BRUSH);
-                dc.DrawEllipse(snapPoint.x - 15, snapPoint.y - 10, 30, 20);
                 dc.SetPen(wxPen(*wxBLACK, 4)); // 边框颜色和宽度;
-                wxPoint points[5] = {
+                wxPoint rightPoints[5] = {
                     wxPoint(snapPoint.x - 20, snapPoint.y - 20),
                     wxPoint(snapPoint.x, snapPoint.y - 18),
                     wxPoint(snapPoint.x + 25, snapPoint.y),
                     wxPoint(snapPoint.x, snapPoint.y + 18),
                     wxPoint(snapPoint.x - 20, snapPoint.y + 20)
                 };
-                dc.DrawSpline(5, points);//绘制或门右侧部分
-                dc.DrawEllipticArc(snapPoint.x - 60, snapPoint.y - 25, 50, 50, -53, 53);//绘制或门左侧部分
+                dc.DrawSpline(5, rightPoints);//绘制或门右侧部分
+                wxPoint leftPoints[3] = {
+                    wxPoint(snapPoint.x - 20, snapPoint.y - 20),
+                    wxPoint(snapPoint.x - 10, snapPoint.y),
+                    wxPoint(snapPoint.x - 20, snapPoint.y + 20),
+                };
+                dc.DrawSpline(3, leftPoints);//绘制或门左侧部分
                 dc.DrawLine(snapPoint.x - 14, snapPoint.y + 10, snapPoint.x - 25, snapPoint.y + 10);
                 dc.DrawLine(snapPoint.x - 14, snapPoint.y - 10, snapPoint.x - 25, snapPoint.y - 10);
                 dc.DrawLine(snapPoint.x + 20, snapPoint.y, snapPoint.x + 25, snapPoint.y);
             }
             else if (tool == Tool::NOT_GATE) {
-                dc.SetBrush(*wxRED_BRUSH);
-                dc.DrawRectangle(snapPoint.x - 10, snapPoint.y - 10, 20, 20);
                 dc.SetPen(wxPen(*wxBLACK, 4)); // 边框颜色和宽度;
                 wxPoint points[3] = {
                     wxPoint(snapPoint.x - 20, snapPoint.y - 20),

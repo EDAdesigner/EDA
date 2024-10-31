@@ -239,7 +239,6 @@ private:
         void Render(wxDC& dc) {
             DrawGrid(dc);
             for (const auto& component : components) {
-                DrawComponent(memDC, component.first, component.second);
                 DrawComponent(dc, component.first, component.second);
             }
         }

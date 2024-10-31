@@ -156,7 +156,6 @@ public:
         Bind(wxEVT_MENU, &MyFrame::OnMaximize, this, wxID_MAXIMIZE); // 绑定最大化事件
         Bind(wxEVT_MENU, &MyFrame::OnMinimize, this, wxID_MINIMIZE); // 绑定最小化事件
         Bind(wxEVT_MENU, &MyFrame::OnCloseWindow, this, wxID_CLOSE); // 绑定关闭事件
-        Bind(wxEVT_MENU, &MyFrame::OnCloseWindow, this, wxID_CLOSE); // 绑定关闭事件
         Bind(wxEVT_MENU, &MyFrame::OnSelectAll, this, ID_SELECT_ALL); // 绑定选择所有事件
         Bind(wxEVT_MENU, &MyFrame::OnCopy, this, ID_COPY); // 绑定复制事件
         Bind(wxEVT_MENU, &MyFrame::OnPaste, this, ID_PASTE); // 绑定粘贴事件
@@ -183,7 +182,6 @@ private:
             : wxPanel(parent), currentTool(Tool::NONE), dragging(false), moveTimer(new wxTimer(this)) {
             // 构造函数，初始化面板及背景颜色
             SetBackgroundColour(*wxWHITE);
-            SetBackgroundStyle(wxBG_STYLE_PAINT);
             bitmap = new wxBitmap(GetSize()); // 初始化位图
             // 绑定事件
             Bind(wxEVT_PAINT, &DrawPanel::OnPaint, this); // 绘制事件
@@ -224,11 +222,6 @@ private:
             Render(*bitmap); // 每次绘制都更新位图
             wxPaintDC dc(this);
             dc.DrawBitmap(*bitmap, 0, 0); // 将位图绘制到面板上
-            wxBufferedPaintDC dc(this);
-            PrepareDC(dc);
-            dc.SetBackground(*wxWHITE_BRUSH);
-            dc.Clear();
-            Render(dc);
         }
 
         void Render(wxBitmap& bitmap) {

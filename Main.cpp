@@ -108,7 +108,6 @@ public:
         windowMenu->Append(wxID_MINIMIZE, "&Minimize\tCtrl+N");
         windowMenu->Append(wxID_CLOSE, "&Close\tCtrl+W");
         menuBar->Append(windowMenu, "&Window");  // 将window菜单添加到菜单栏
-
         // 创建帮助菜单
         wxMenu* helpMenu = new wxMenu;
         helpMenu->Append(wxID_ABOUT, "&About\tF1", "Show about dialog");

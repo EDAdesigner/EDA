@@ -108,11 +108,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-<<<<<<< HEAD
-      <AdditionalIncludeDirectories>$(WXWIN)\include;$(WXWIN)\include\msvc;D:\VS_json\json\include;%(AdditionalIncludeDirectories);E:\IDE\project\include</AdditionalIncludeDirectories>
-=======
       <AdditionalIncludeDirectories>$(WXWIN)\include;$(WXWIN)\include\msvc;C:\users\86139\pcy\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
->>>>>>> pcy
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -128,11 +124,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-<<<<<<< HEAD
       <AdditionalIncludeDirectories>$(WXWIN)\include;$(WXWIN)\include\msvc;D:\VS_json\json\include;%(AdditionalIncludeDirectories);E:\IDE\project\include</AdditionalIncludeDirectories>
-=======
-      <AdditionalIncludeDirectories>$(WXWIN)\include;$(WXWIN)\include\msvc;C:\users\86139\pcy\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
->>>>>>> pcy
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

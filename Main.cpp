@@ -1,4 +1,5 @@
-﻿#include<wx/wx.h>
+#include <wx/wx.h>
+#include <wx/dcbuffer.h>
 #include <wx/toolbar.h>
 #include <wx/filedlg.h>
 #include <wx/image.h>
@@ -19,5 +20,5 @@ public:
     }
 };
 
-// 实现应用程序入口点
-wxIMPLEMENT_APP(MyApp);
+    // 实现应用程序入口点
+    wxIMPLEMENT_APP(MyApp);

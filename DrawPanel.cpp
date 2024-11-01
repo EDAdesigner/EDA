@@ -11,7 +11,7 @@
 class DrawPanel : public wxPanel {
     friend class MyFrame; // 声明 MyFrame 为友元类,使得wxframe能够访问DrawPanel的私有方法
 public:
-    enum class Tool { NONE, AND_GATE, OR_GATE, NOT_GATE }; // 定义工具类型，包括无工具、与门、或门和非门
+    enum class Tool { NONE, AND_GATE, OR_GATE, NOT_GATE, NAND_GATE, NOR_GATE, XOR_GATE, XNOR_GATE, }; // 定义工具类型，包括无工具、与门、或门和非门 // 定义工具类型，包括无工具、与门、或门和非门
     wxBitmap* bitmap = nullptr;// 新增位图指针
 
     DrawPanel(wxWindow* parent)
@@ -81,26 +81,35 @@ public:
         wxPoint snapPoint(gridX, gridY);
         // 根据工具类型绘制对应的组件
         if (tool == Tool::AND_GATE) {
-            wxPoint points[4] = {
-                wxPoint(snapPoint.x - 20, snapPoint.y - 20), // 左上
-                wxPoint(snapPoint.x , snapPoint.y - 20), // 右上
-                wxPoint(snapPoint.x , snapPoint.y + 20), // 中下
-                wxPoint(snapPoint.x - 20, snapPoint.y + 20)  // 左下
+            dc.SetPen(wxPen(*wxBLACK, 4)); // 边框颜色和宽度
+            //绘制与门直线部分
+            dc.DrawLine(snapPoint.x - 20, snapPoint.y - 20, snapPoint.x, snapPoint.y - 20);
+            dc.DrawLine(snapPoint.x - 20, snapPoint.y - 20, snapPoint.x - 20, snapPoint.y + 20);
+            dc.DrawLine(snapPoint.x - 20, snapPoint.y + 20, snapPoint.x, snapPoint.y + 20);
+            //绘制与门圆弧部分
+            wxPoint points[5] = {
+                wxPoint(snapPoint.x, snapPoint.y - 20),
+                wxPoint(snapPoint.x + 10, snapPoint.y - 17),
+                wxPoint(snapPoint.x + 20, snapPoint.y),
+                wxPoint(snapPoint.x + 10, snapPoint.y + 17),
+                wxPoint(snapPoint.x, snapPoint.y + 20),
             };
-            dc.SetPen(wxPen(*wxBLACK, 4)); // 边框颜色和宽度
-            dc.DrawPolygon(4, points); // 绘制与门左侧部分
-            dc.DrawArc(snapPoint.x, snapPoint.y + 20, snapPoint.x, snapPoint.y - 20, snapPoint.x, snapPoint.y); // 绘制圆边
-            wxRect rect(snapPoint.x - 10, snapPoint.y - 17, 12, 35);
-            dc.SetPen(wxPen(*wxWHITE, 2)); // 边框颜色和宽度
-            dc.SetBrush(wxBrush(*wxWHITE)); // 设置为白色刷子以覆盖
-            dc.DrawRectangle(rect); // 绘制覆盖矩形
-            dc.SetPen(wxPen(*wxBLACK, 4)); // 边框颜色和宽度
+            dc.DrawSpline(5, points);
+            //绘制输入输出口
             dc.DrawLine(snapPoint.x - 20, snapPoint.y + 10, snapPoint.x - 27, snapPoint.y + 10);
             dc.DrawLine(snapPoint.x - 20, snapPoint.y - 10, snapPoint.x - 27, snapPoint.y - 10);
             dc.DrawLine(snapPoint.x + 20, snapPoint.y, snapPoint.x + 25, snapPoint.y);
         }
         else if (tool == Tool::OR_GATE) {
             dc.SetPen(wxPen(*wxBLACK, 4)); // 边框颜色和宽度;
+            //绘制或门左侧部分
+            wxPoint leftPoints[3] = {
+                wxPoint(snapPoint.x - 20, snapPoint.y - 20),
+                wxPoint(snapPoint.x - 10, snapPoint.y),
+                wxPoint(snapPoint.x - 20, snapPoint.y + 20),
+            };
+            dc.DrawSpline(3, leftPoints);
+            //绘制或门右侧部分
             wxPoint rightPoints[5] = {
                 wxPoint(snapPoint.x - 20, snapPoint.y - 20),
                 wxPoint(snapPoint.x, snapPoint.y - 18),
@@ -108,30 +117,135 @@ public:
                 wxPoint(snapPoint.x, snapPoint.y + 18),
                 wxPoint(snapPoint.x - 20, snapPoint.y + 20)
             };
-            dc.DrawSpline(5, rightPoints);//绘制或门右侧部分
-            wxPoint leftPoints[3] = {
-                wxPoint(snapPoint.x - 20, snapPoint.y - 20),
-                wxPoint(snapPoint.x - 10, snapPoint.y),
-                wxPoint(snapPoint.x - 20, snapPoint.y + 20),
-            };
-            dc.DrawSpline(3, leftPoints);//绘制或门左侧部分
+            dc.DrawSpline(5, rightPoints);
+            //绘制输入输出口
             dc.DrawLine(snapPoint.x - 14, snapPoint.y + 10, snapPoint.x - 25, snapPoint.y + 10);
             dc.DrawLine(snapPoint.x - 14, snapPoint.y - 10, snapPoint.x - 25, snapPoint.y - 10);
             dc.DrawLine(snapPoint.x + 20, snapPoint.y, snapPoint.x + 25, snapPoint.y);
         }
         else if (tool == Tool::NOT_GATE) {
             dc.SetPen(wxPen(*wxBLACK, 4)); // 边框颜色和宽度;
-            wxPoint points[3] = {
-                wxPoint(snapPoint.x - 20, snapPoint.y - 20),
-                wxPoint(snapPoint.x + 12, snapPoint.y),
-                wxPoint(snapPoint.x - 20, snapPoint.y + 20)
-            };
-            dc.DrawPolygon(3, points); // 绘制非门左侧部分
+            //绘制非门左侧部分
+            dc.DrawLine(snapPoint.x - 20, snapPoint.y - 20, snapPoint.x + 12, snapPoint.y);
+            dc.DrawLine(snapPoint.x - 20, snapPoint.y + 20, snapPoint.x - 20, snapPoint.y - 20);
+            dc.DrawLine(snapPoint.x - 20, snapPoint.y + 20, snapPoint.x + 12, snapPoint.y);
+            //绘制非门右侧部分
             dc.DrawCircle(snapPoint.x + 16, snapPoint.y, 4);
+            //绘制输入输出口
             dc.DrawLine(snapPoint.x - 20, snapPoint.y, snapPoint.x - 27, snapPoint.y);
             dc.DrawLine(snapPoint.x + 20, snapPoint.y, snapPoint.x + 25, snapPoint.y);
         }
+        else if (tool == Tool::NAND_GATE) {
+            dc.SetPen(wxPen(*wxBLACK, 4)); // 边框颜色和宽度;
+            //绘制与非门左侧直线部分
+            dc.DrawLine(snapPoint.x - 20, snapPoint.y - 20, snapPoint.x - 4, snapPoint.y - 20);
+            dc.DrawLine(snapPoint.x - 20, snapPoint.y - 20, snapPoint.x - 20, snapPoint.y + 20);
+            dc.DrawLine(snapPoint.x - 20, snapPoint.y + 20, snapPoint.x - 4, snapPoint.y + 20);
+            //绘制与非门圆弧部分
+            wxPoint points[5] = {
+                wxPoint(snapPoint.x - 4, snapPoint.y - 20),
+                wxPoint(snapPoint.x + 6, snapPoint.y - 17),
+                wxPoint(snapPoint.x + 16, snapPoint.y),
+                wxPoint(snapPoint.x + 6, snapPoint.y + 17),
+                wxPoint(snapPoint.x - 4, snapPoint.y + 20),
+            };
+            dc.DrawSpline(5, points);
+            //绘制与非门右侧部分
+            dc.DrawCircle(snapPoint.x + 16, snapPoint.y, 4);
+            //绘制输入输出口
+            dc.DrawLine(snapPoint.x - 20, snapPoint.y + 10, snapPoint.x - 27, snapPoint.y + 10);
+            dc.DrawLine(snapPoint.x - 20, snapPoint.y - 10, snapPoint.x - 27, snapPoint.y - 10);
+            dc.DrawLine(snapPoint.x + 20, snapPoint.y, snapPoint.x + 25, snapPoint.y);
+        }
+        else if (tool == Tool::NOR_GATE) {
+            dc.SetPen(wxPen(*wxBLACK, 4)); // 边框颜色和宽度;
+            //绘制或非门左侧弧线部分
+            wxPoint leftPoints[3] = {
+                wxPoint(snapPoint.x - 20, snapPoint.y - 20),
+                wxPoint(snapPoint.x - 10, snapPoint.y),
+                wxPoint(snapPoint.x - 20, snapPoint.y + 20),
+            };
+            dc.DrawSpline(3, leftPoints);
+            //绘制或非门右侧弧线部分
+            wxPoint rightPoints[5] = {
+                wxPoint(snapPoint.x - 20, snapPoint.y - 20),
+                wxPoint(snapPoint.x, snapPoint.y - 18),
+                wxPoint(snapPoint.x + 18, snapPoint.y),
+                wxPoint(snapPoint.x, snapPoint.y + 18),
+                wxPoint(snapPoint.x - 20, snapPoint.y + 20)
+            };
+            dc.DrawSpline(5, rightPoints);
+            //绘制或非门圆圈部分
+            dc.DrawCircle(snapPoint.x + 16, snapPoint.y, 4);
+            //绘制输入输出口
+            dc.DrawLine(snapPoint.x - 14, snapPoint.y + 10, snapPoint.x - 25, snapPoint.y + 10);
+            dc.DrawLine(snapPoint.x - 14, snapPoint.y - 10, snapPoint.x - 25, snapPoint.y - 10);
+            dc.DrawLine(snapPoint.x + 20, snapPoint.y, snapPoint.x + 25, snapPoint.y);
+        }
+        else if (tool == Tool::XOR_GATE) {
+            dc.SetPen(wxPen(*wxBLACK, 4)); // 边框颜色和宽度;
+            //绘制异或门左侧弧线部分
+            wxPoint leftPoints[3] = {
+                wxPoint(snapPoint.x - 20, snapPoint.y - 20),
+                wxPoint(snapPoint.x - 10, snapPoint.y),
+                wxPoint(snapPoint.x - 20, snapPoint.y + 20),
+            };
+            dc.DrawSpline(3, leftPoints);
+            //绘制异或门中间弧线部分
+            wxPoint centerPoints[3] = {
+                wxPoint(snapPoint.x - 15, snapPoint.y - 20),
+                wxPoint(snapPoint.x - 5, snapPoint.y),
+                wxPoint(snapPoint.x - 15, snapPoint.y + 20),
+            };
+            dc.DrawSpline(3, centerPoints);
+            //绘制异或门右侧弧线部分
+            wxPoint rightPoints[5] = {
+                wxPoint(snapPoint.x - 15, snapPoint.y - 20),
+                wxPoint(snapPoint.x, snapPoint.y - 18),
+                wxPoint(snapPoint.x + 25, snapPoint.y),
+                wxPoint(snapPoint.x, snapPoint.y + 18),
+                wxPoint(snapPoint.x - 15, snapPoint.y + 20)
+            };
+            dc.DrawSpline(5, rightPoints);
+            //绘制输入输出口
+            dc.DrawLine(snapPoint.x - 16, snapPoint.y + 10, snapPoint.x - 25, snapPoint.y + 10);
+            dc.DrawLine(snapPoint.x - 16, snapPoint.y - 10, snapPoint.x - 25, snapPoint.y - 10);
+            dc.DrawLine(snapPoint.x + 20, snapPoint.y, snapPoint.x + 25, snapPoint.y);
+        }
+        else if (tool == Tool::XNOR_GATE) {
+            dc.SetPen(wxPen(*wxBLACK, 4)); // 边框颜色和宽度;
+            //绘制同或门左侧弧线部分
+            wxPoint leftPoints[3] = {
+                wxPoint(snapPoint.x - 20, snapPoint.y - 20),
+                wxPoint(snapPoint.x - 10, snapPoint.y),
+                wxPoint(snapPoint.x - 20, snapPoint.y + 20),
+            };
+            dc.DrawSpline(3, leftPoints);
+            //绘制同或门中间弧线部分
+            wxPoint centerPoints[3] = {
+                wxPoint(snapPoint.x - 15, snapPoint.y - 20),
+                wxPoint(snapPoint.x - 5, snapPoint.y),
+                wxPoint(snapPoint.x - 15, snapPoint.y + 20),
+            };
+            dc.DrawSpline(3, centerPoints);
+            //绘制同或门右侧弧线部分
+            wxPoint rightPoints[5] = {
+                wxPoint(snapPoint.x - 15, snapPoint.y - 20),
+                wxPoint(snapPoint.x, snapPoint.y - 18),
+                wxPoint(snapPoint.x + 19, snapPoint.y),
+                wxPoint(snapPoint.x, snapPoint.y + 18),
+                wxPoint(snapPoint.x - 15, snapPoint.y + 20)
+            };
+            dc.DrawSpline(5, rightPoints);
+            //绘制同或门右侧圆圈部分
+            dc.DrawCircle(snapPoint.x + 16, snapPoint.y, 4);
+            //绘制输入输出口
+            dc.DrawLine(snapPoint.x - 16, snapPoint.y + 10, snapPoint.x - 25, snapPoint.y + 10);
+            dc.DrawLine(snapPoint.x - 16, snapPoint.y - 10, snapPoint.x - 25, snapPoint.y - 10);
+            dc.DrawLine(snapPoint.x + 20, snapPoint.y, snapPoint.x + 25, snapPoint.y);
+        }
     }
+
 
 
     void OnLeftDown(wxMouseEvent& event) {

@@ -119,7 +119,11 @@ public:
         subtoolbar->AddTool(1, "AND Gate", wxArtProvider::GetBitmap(wxART_NEW)); // 添加与门图标
         subtoolbar->AddTool(2, "OR Gate", wxArtProvider::GetBitmap(wxART_NEW)); // 添加或门图标
         subtoolbar->AddTool(3, "NOT Gate", wxArtProvider::GetBitmap(wxART_NEW)); // 添加非门图标
-        subtoolbar->AddTool(4, "Delete", wxArtProvider::GetBitmap(wxART_NEW)); // 添加删除工具图标
+        subtoolbar->AddTool(4, "NAND Gate", wxArtProvider::GetBitmap(wxART_NEW)); // 添加与非门图标
+        subtoolbar->AddTool(5, "NOR Gate", wxArtProvider::GetBitmap(wxART_NEW)); // 添加或非门图标
+        subtoolbar->AddTool(6, "XOR Gate", wxArtProvider::GetBitmap(wxART_NEW)); // 添加异或门图标
+        subtoolbar->AddTool(7, "XNOR Gate", wxArtProvider::GetBitmap(wxART_NEW)); // 添加同或门图标
+        subtoolbar->AddTool(8, "Delete", wxArtProvider::GetBitmap(wxART_NEW)); // 添加删除工具图标
         subtoolbar->Realize(); // 完成子工具栏的创建
 
         // 设置子工具栏的大小和位置
@@ -368,8 +372,20 @@ public:
         case 3: // 选择非门工具
             drawPanel->SetCurrentTool(DrawPanel::Tool::NOT_GATE);
             break;
-        case 4: // 删除工具逻辑不再需要，因为使用右键菜单删除
-            // 这里可以选择什么也不做
+        case 4: // 选择与非门工具
+            drawPanel->SetCurrentTool(DrawPanel::Tool::NAND_GATE);
+            break;
+        case 5: // 选择或非门工具
+            drawPanel->SetCurrentTool(DrawPanel::Tool::NOR_GATE);
+            break;
+        case 6: // 选择异或门工具
+            drawPanel->SetCurrentTool(DrawPanel::Tool::XOR_GATE);
+            break;
+        case 7: // 选择同或门工具
+            drawPanel->SetCurrentTool(DrawPanel::Tool::XNOR_GATE);
+            break;
+        case 8: // 删除工具逻辑不再需要，因为使用右键菜单删除
+
             break;
         }
     }

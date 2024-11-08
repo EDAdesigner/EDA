@@ -18,7 +18,7 @@ public:
 
 
     DrawPanel(wxWindow* parent)
-        : wxPanel(parent), currentTool(Tool::NONE), dragging(false), moveTimer(new wxTimer(this)) {
+        : wxPanel(parent), currentTool(Tool::NONE), dragging(false), moveTimer(new wxTimer(this)), connecting(false), startPoint(wxPoint(-1, -1)), connectionStartIndex(-1) {
         // 构造函数，初始化面板及背景颜色
         SetBackgroundColour(*wxWHITE);
         SetBackgroundStyle(wxBG_STYLE_PAINT);
@@ -49,9 +49,14 @@ public:
     std::vector<std::pair<Tool, wxPoint>> components; // 存储已添加的组件及其位置
     std::vector<int> selectedComponents;// 存储选中的组件
     std::vector<std::pair<Tool, wxPoint>> copiedComponents; // 存储复制的组件
+    std::vector<std::pair<int, int>> connections; // 存储连接线的组件索引
     bool dragging; // 标记是否正在拖动组件
+    bool connecting;
     int draggedComponentIndex; // 被拖动的组件索引
-    wxPoint dragStartPos; // 拖动开始位置
+    wxPoint dragStartPos;
+    wxPoint componentOffset; // 新增：记录元件相对于鼠标的偏移
+    wxPoint startPoint; // 连线起始点
+    int connectionStartIndex; // 声明变量
 
     void OnPaint(wxPaintEvent& event) {
         wxBufferedPaintDC dc(this);
@@ -66,6 +71,8 @@ public:
         for (const auto& component : components) {
             DrawComponent(dc, component.first, component.second);
         }
+        DrawConnections(dc);
+
     }
 
     void DrawGrid(wxDC& dc) {
@@ -248,17 +255,44 @@ public:
             dc.DrawLine(snapPoint.x + 20, snapPoint.y, snapPoint.x + 25, snapPoint.y);
         }
     }
+    void DrawConnections(wxDC& dc) {
+        dc.SetPen(wxPen(*wxBLUE, 2));
+        for (const auto& connection : connections) {
+            wxPoint start = components[connection.first].second;
+            wxPoint end = components[connection.second].second;
+            DrawGridAlignedLine(dc, start, end);
+        }
+    }
 
+    void DrawGridAlignedLine(wxDC& dc, const wxPoint& start, const wxPoint& end) {
+        wxPoint gridStart((start.x / 20) * 20, (start.y / 20) * 20);
+        wxPoint gridEnd((end.x / 20) * 20, (end.y / 20) * 20);
 
+        if (gridStart.x == gridEnd.x || gridStart.y == gridEnd.y) {
+            dc.DrawLine(gridStart, gridEnd);
+        }
+        else {
+            wxPoint midPoint(gridEnd.x, gridStart.y);
+            dc.DrawLine(gridStart, midPoint);
+            dc.DrawLine(midPoint, gridEnd);
+        }
+    }
 
     void OnLeftDown(wxMouseEvent& event) {
         wxPoint pos = event.GetPosition();
 
         for (size_t i = 0; i < components.size(); ++i) {
             if (abs(components[i].second.x - pos.x) < 20 && abs(components[i].second.y - pos.y) < 20) {
+                if (connecting) {
+                    connections.emplace_back(connectionStartIndex, i);
+                    connecting = false;
+                    Refresh();
+                    return;
+                }
                 dragging = true;
                 draggedComponentIndex = i;
                 dragStartPos = pos;
+                componentOffset = pos - components[i].second; // 记录偏移
                 CaptureMouse();
                 return;
             }
@@ -280,20 +314,33 @@ public:
     }
 
     void OnMouseMove(wxMouseEvent& event) {
-        // 如果正在拖动组件
         if (dragging) {
             wxPoint pos = event.GetPosition();
-
-            wxPoint offset = pos - dragStartPos;
-            // 更新位置
+            wxPoint newComponentPos = pos - componentOffset; // 使用偏移计算新位置
             wxPoint& componentPos = components[draggedComponentIndex].second;
-            componentPos += offset;
-            dragStartPos = pos;
-            // 重绘整个面板以确保清除残影
+            componentPos = newComponentPos;
+
+            // 更新连接线位置
+            UpdateConnections(draggedComponentIndex, newComponentPos - componentPos);
+
             Refresh();
             Update();
         }
     }
+
+    void UpdateConnections(int index, const wxPoint& offset) {
+        for (auto& connection : connections) {
+            if (connection.first == index || connection.second == index) {
+                if (connection.first == index) {
+                    components[connection.first].second += offset;
+                }
+                if (connection.second == index) {
+                    components[connection.second].second += offset;
+                }
+            }
+        }
+    }
+
     // 添加一个新的方法处理定时器事件
     void OnMoveTimer(wxTimerEvent&) {
         Refresh(); // 刷新绘图
@@ -301,31 +348,38 @@ public:
     }
 
     void OnRightDown(wxMouseEvent& event) {
-        wxPoint pos = event.GetPosition(); // 获取鼠标点击位置
-        bool componentFound = false; // 标记是否找到组件
-        int componentToDelete = -1; // 记录要删除的组件索引
+        wxPoint pos = event.GetPosition();
+        bool componentFound = false;
+        int componentToDelete = -1;
 
-        // 检查是否点击在现有组件上
         for (size_t i = 0; i < components.size(); ++i) {
             if (abs(components[i].second.x - pos.x) < 20 && abs(components[i].second.y - pos.y) < 20) {
-                componentFound = true; // 找到组件
-                componentToDelete = i; // 记录组件索引
-                break; // 退出循环
+                componentFound = true;
+                componentToDelete = i;
+                break;
             }
         }
 
-        // 如果找到组件，则显示删除菜单
         if (componentFound) {
-            wxMenu menu; // 创建上下文菜单
-            menu.Append(wxID_ANY, "Delete"); // 添加删除选项
-            // 绑定菜单项的事件
+            wxMenu menu;
+            menu.Append(wxID_ANY, "Delete");
+            menu.Append(wxID_ANY, "Connect");
+
             Bind(wxEVT_MENU, [this, componentToDelete](wxCommandEvent&) {
                 if (componentToDelete != -1) {
-                    components.erase(components.begin() + componentToDelete); // 删除组件
-                    Refresh(); // 刷新绘图
+                    components.erase(components.begin() + componentToDelete);
+                    Refresh();
                 }
-                }, wxID_ANY); // 使用绑定的命令ID
-            PopupMenu(&menu); // 显示菜单
+                }, wxID_ANY);
+
+            Bind(wxEVT_MENU, [this, componentToDelete](wxCommandEvent&) {
+                if (componentToDelete != -1) {
+                    connecting = true;
+                    connectionStartIndex = componentToDelete;
+                }
+                }, wxID_ANY);
+
+            PopupMenu(&menu);
         }
     }
 

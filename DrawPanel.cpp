@@ -4,6 +4,7 @@
 #include <wx/image.h>
 #include <wx/artprov.h>
 #include <vector>
+#include <wx/dcbuffer.h>
 #include <wx/frame.h>       // 包含框架窗口相关功能
 #include <wx/treectrl.h>    // 包含树控件的相关功能
 
@@ -13,11 +14,14 @@ class DrawPanel : public wxPanel {
 public:
     enum class Tool { NONE, AND_GATE, OR_GATE, NOT_GATE, NAND_GATE, NOR_GATE, XOR_GATE, XNOR_GATE, }; // 定义工具类型，包括无工具、与门、或门和非门 // 定义工具类型，包括无工具、与门、或门和非门
     wxBitmap* bitmap = nullptr;// 新增位图指针
+    wxTimer* moveTimer;
+
 
     DrawPanel(wxWindow* parent)
-        : wxPanel(parent), currentTool(Tool::NONE), dragging(false) {
+        : wxPanel(parent), currentTool(Tool::NONE), dragging(false), moveTimer(new wxTimer(this)), connecting(false), startPoint(wxPoint(-1, -1)), connectionStartIndex(-1) {
         // 构造函数，初始化面板及背景颜色
         SetBackgroundColour(*wxWHITE);
+        SetBackgroundStyle(wxBG_STYLE_PAINT);
         bitmap = new wxBitmap(GetSize()); // 初始化位图
         // 绑定事件
         Bind(wxEVT_PAINT, &DrawPanel::OnPaint, this); // 绘制事件
@@ -26,10 +30,14 @@ public:
         Bind(wxEVT_MOTION, &DrawPanel::OnMouseMove, this); // 鼠标移动事件
         Bind(wxEVT_RIGHT_DOWN, &DrawPanel::OnRightDown, this); // 右键按下事件
         Bind(wxEVT_SIZE, &DrawPanel::OnSize, this); // 面板大小变化事件
+        Bind(wxEVT_TIMER, &DrawPanel::OnMoveTimer, this);// 绑定定时器事件
+
     }
 
     ~DrawPanel() {
         delete bitmap; // 释放位图内存
+        delete moveTimer; // 释放定时器内存
+
     }
 
     void SetCurrentTool(Tool tool) {
@@ -41,28 +49,30 @@ public:
     std::vector<std::pair<Tool, wxPoint>> components; // 存储已添加的组件及其位置
     std::vector<int> selectedComponents;// 存储选中的组件
     std::vector<std::pair<Tool, wxPoint>> copiedComponents; // 存储复制的组件
+    std::vector<std::pair<int, int>> connections; // 存储连接线的组件索引
     bool dragging; // 标记是否正在拖动组件
+    bool connecting;
     int draggedComponentIndex; // 被拖动的组件索引
-    wxPoint dragStartPos; // 拖动开始位置
+    wxPoint dragStartPos;
+    wxPoint componentOffset; // 新增：记录元件相对于鼠标的偏移
+    wxPoint startPoint; // 连线起始点
+    int connectionStartIndex; // 声明变量
 
     void OnPaint(wxPaintEvent& event) {
-        if (!bitmap || bitmap->GetSize() != GetSize()) {
-            delete bitmap;  // 删除旧位图
-            bitmap = new wxBitmap(GetSize()); // 创建新的位图
-        }
-        Render(*bitmap); // 每次绘制都更新位图
-        wxPaintDC dc(this);
-        dc.DrawBitmap(*bitmap, 0, 0); // 将位图绘制到面板上
+        wxBufferedPaintDC dc(this);
+        PrepareDC(dc);
+        dc.SetBackground(*wxWHITE_BRUSH);
+        dc.Clear();
+        Render(dc);
     }
 
-    void Render(wxBitmap& bitmap) {
-        wxMemoryDC memDC(bitmap); // 使用内存DC绘制到位图
-        memDC.SetBackground(*wxWHITE_BRUSH);
-        memDC.Clear();
-        DrawGrid(memDC);
+    void Render(wxDC& dc) {
+        DrawGrid(dc);
         for (const auto& component : components) {
-            DrawComponent(memDC, component.first, component.second);
+            DrawComponent(dc, component.first, component.second);
         }
+        DrawConnections(dc);
+
     }
 
     void DrawGrid(wxDC& dc) {
@@ -245,26 +255,52 @@ public:
             dc.DrawLine(snapPoint.x + 20, snapPoint.y, snapPoint.x + 25, snapPoint.y);
         }
     }
+    void DrawConnections(wxDC& dc) {
+        dc.SetPen(wxPen(*wxBLUE, 2));
+        for (const auto& connection : connections) {
+            wxPoint start = components[connection.first].second;
+            wxPoint end = components[connection.second].second;
+            DrawGridAlignedLine(dc, start, end);
+        }
+    }
 
+    void DrawGridAlignedLine(wxDC& dc, const wxPoint& start, const wxPoint& end) {
+        wxPoint gridStart((start.x / 20) * 20, (start.y / 20) * 20);
+        wxPoint gridEnd((end.x / 20) * 20, (end.y / 20) * 20);
 
+        if (gridStart.x == gridEnd.x || gridStart.y == gridEnd.y) {
+            dc.DrawLine(gridStart, gridEnd);
+        }
+        else {
+            wxPoint midPoint(gridEnd.x, gridStart.y);
+            dc.DrawLine(gridStart, midPoint);
+            dc.DrawLine(midPoint, gridEnd);
+        }
+    }
 
     void OnLeftDown(wxMouseEvent& event) {
-        wxPoint pos = event.GetPosition(); // 获取鼠标点击位置
-        // 检查是否点击在现有组件上
+        wxPoint pos = event.GetPosition();
+
         for (size_t i = 0; i < components.size(); ++i) {
             if (abs(components[i].second.x - pos.x) < 20 && abs(components[i].second.y - pos.y) < 20) {
+                if (connecting) {
+                    connections.emplace_back(connectionStartIndex, i);
+                    connecting = false;
+                    Refresh();
+                    return;
+                }
                 dragging = true;
                 draggedComponentIndex = i;
                 dragStartPos = pos;
+                componentOffset = pos - components[i].second; // 记录偏移
                 CaptureMouse();
                 return;
             }
         }
 
-        // 如果没有拖动组件并且选择了工具，则添加新组件
-        if (currentTool != Tool::NONE) {
-            components.emplace_back(currentTool, pos); // 添加组件
-            Refresh(); // 刷新绘图
+        if (!dragging && currentTool != Tool::NONE) {
+            components.emplace_back(currentTool, pos);
+            Refresh();
         }
     }
 
@@ -278,44 +314,72 @@ public:
     }
 
     void OnMouseMove(wxMouseEvent& event) {
-        // 如果正在拖动组件
         if (dragging) {
-            wxPoint pos = event.GetPosition(); // 获取当前鼠标位置
-            // 计算偏移量
-            wxPoint offset = pos - dragStartPos;
-            // 更新组件位置
-            components[draggedComponentIndex].second += offset;
-            dragStartPos = pos; // 更新拖动开始位置
-            Refresh(); // 刷新绘图
+            wxPoint pos = event.GetPosition();
+            wxPoint newComponentPos = pos - componentOffset; // 使用偏移计算新位置
+            wxPoint& componentPos = components[draggedComponentIndex].second;
+            componentPos = newComponentPos;
+
+            // 更新连接线位置
+            UpdateConnections(draggedComponentIndex, newComponentPos - componentPos);
+
+            Refresh();
+            Update();
         }
     }
 
-    void OnRightDown(wxMouseEvent& event) {
-        wxPoint pos = event.GetPosition(); // 获取鼠标点击位置
-        bool componentFound = false; // 标记是否找到组件
-        int componentToDelete = -1; // 记录要删除的组件索引
+    void UpdateConnections(int index, const wxPoint& offset) {
+        for (auto& connection : connections) {
+            if (connection.first == index || connection.second == index) {
+                if (connection.first == index) {
+                    components[connection.first].second += offset;
+                }
+                if (connection.second == index) {
+                    components[connection.second].second += offset;
+                }
+            }
+        }
+    }
 
-        // 检查是否点击在现有组件上
+    // 添加一个新的方法处理定时器事件
+    void OnMoveTimer(wxTimerEvent&) {
+        Refresh(); // 刷新绘图
+        moveTimer->Stop(); // 停止定时器
+    }
+
+    void OnRightDown(wxMouseEvent& event) {
+        wxPoint pos = event.GetPosition();
+        bool componentFound = false;
+        int componentToDelete = -1;
+
         for (size_t i = 0; i < components.size(); ++i) {
             if (abs(components[i].second.x - pos.x) < 20 && abs(components[i].second.y - pos.y) < 20) {
-                componentFound = true; // 找到组件
-                componentToDelete = i; // 记录组件索引
-                break; // 退出循环
+                componentFound = true;
+                componentToDelete = i;
+                break;
             }
         }
 
-        // 如果找到组件，则显示删除菜单
         if (componentFound) {
-            wxMenu menu; // 创建上下文菜单
-            menu.Append(wxID_ANY, "Delete"); // 添加删除选项
-            // 绑定菜单项的事件
+            wxMenu menu;
+            menu.Append(wxID_ANY, "Delete");
+            menu.Append(wxID_ANY, "Connect");
+
             Bind(wxEVT_MENU, [this, componentToDelete](wxCommandEvent&) {
                 if (componentToDelete != -1) {
-                    components.erase(components.begin() + componentToDelete); // 删除组件
-                    Refresh(); // 刷新绘图
+                    components.erase(components.begin() + componentToDelete);
+                    Refresh();
                 }
-                }, wxID_ANY); // 使用绑定的命令ID
-            PopupMenu(&menu); // 显示菜单
+                }, wxID_ANY);
+
+            Bind(wxEVT_MENU, [this, componentToDelete](wxCommandEvent&) {
+                if (componentToDelete != -1) {
+                    connecting = true;
+                    connectionStartIndex = componentToDelete;
+                }
+                }, wxID_ANY);
+
+            PopupMenu(&menu);
         }
     }
 

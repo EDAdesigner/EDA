@@ -35,7 +35,7 @@ public:
 
         // 创建绘图面板，用于显示和绘制电子元件
         drawPanel = new DrawPanel(panel);
-        hbox->Add(drawPanel, 8, wxEXPAND | wxALL, 10); // 将绘图面板添加到布局中，比例为8，允许扩展，并添加边距
+        hbox->Add(drawPanel, 8, wxEXPAND | wxALL, 10); // 将绘图面板添加到布局中，比例为1，允许扩展，并添加边距
 
         // 设置主面板的布局管理器为hbox
         panel->SetSizer(hbox);
@@ -45,7 +45,6 @@ public:
         SetStatusText("This is a model"); // 设置状态栏的文本
 
         // 创建菜单栏，包含文件和帮助菜单
-        // 创建菜单
         wxMenuBar* menuBar = new wxMenuBar;  // 创建菜单栏
         wxMenu* fileMenu = new wxMenu;  // 创建文件菜单
         // 向文件菜单添加项
@@ -101,8 +100,6 @@ public:
         helpMenu->Append(ID_SHOW_TEXT_BOX, "Show Text Box", "Show a new text box");
         menuBar->Append(helpMenu, "&Help");  // 将帮助菜单添加到菜单栏
 
-
-
         SetMenuBar(menuBar); // 设置应用程序的菜单栏
         SetSize(800, 600); // 设置窗口的初始大小
         Show(true); // 显示窗口
@@ -114,25 +111,35 @@ public:
         toolbar->AddTool(wxID_SAVE, "Save", wxArtProvider::GetBitmap(wxART_FILE_SAVE)); // 添加保存工具图标
         toolbar->Realize(); // 完成工具栏的创建
 
-        // 创建子工具栏，用于选择不同的电子元件
-        wxToolBar* subtoolbar = new wxToolBar(subPanel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTB_VERTICAL | wxNO_BORDER);
-        subtoolbar->AddTool(1, "AND Gate", wxArtProvider::GetBitmap(wxART_NEW)); // 添加与门图标
-        subtoolbar->AddTool(2, "OR Gate", wxArtProvider::GetBitmap(wxART_NEW)); // 添加或门图标
-        subtoolbar->AddTool(3, "NOT Gate", wxArtProvider::GetBitmap(wxART_NEW)); // 添加非门图标
-        subtoolbar->AddTool(4, "NAND Gate", wxArtProvider::GetBitmap(wxART_NEW)); // 添加与非门图标
-        subtoolbar->AddTool(5, "NOR Gate", wxArtProvider::GetBitmap(wxART_NEW)); // 添加或非门图标
-        subtoolbar->AddTool(6, "XOR Gate", wxArtProvider::GetBitmap(wxART_NEW)); // 添加异或门图标
-        subtoolbar->AddTool(7, "XNOR Gate", wxArtProvider::GetBitmap(wxART_NEW)); // 添加同或门图标
-        subtoolbar->AddTool(8, "Delete", wxArtProvider::GetBitmap(wxART_NEW)); // 添加删除工具图标
-        subtoolbar->Realize(); // 完成子工具栏的创建
+        // 创建树控件，用于管理不同的电子元件
+        treeCtrl = new wxTreeCtrl(subPanel, wxID_ANY, wxDefaultPosition, wxSize(400, 800), wxTR_DEFAULT_STYLE);
 
-        // 设置子工具栏的大小和位置
-        subtoolbar->SetSize(subPanel->GetClientSize()); // 将子工具栏的大小设置为子面板的客户区大小
-        subtoolbar->SetPosition(wxPoint(0, 0)); // 设置子工具栏的位置为(0, 0)
+        // 创建根节点
+        wxTreeItemId rootId = treeCtrl->AddRoot("Electronic Components");
 
-        // 绑定子面板大小变化事件，确保子工具栏在大小变化时也跟随调整
-        subPanel->Bind(wxEVT_SIZE, [subtoolbar](wxSizeEvent& event) {
-            subtoolbar->SetSize(event.GetSize()); // 更新子工具栏的大小
+        // 添加电子元件节点
+        treeCtrl->AppendItem(rootId, "AND Gate");
+        treeCtrl->AppendItem(rootId, "OR Gate");
+        treeCtrl->AppendItem(rootId, "NOT Gate");
+        treeCtrl->AppendItem(rootId, "NAND Gate");
+        treeCtrl->AppendItem(rootId, "NOR Gate");
+        treeCtrl->AppendItem(rootId, "XOR Gate");
+        treeCtrl->AppendItem(rootId, "XNOR Gate");
+        treeCtrl->AppendItem(rootId, "Delete");
+
+        // 展开根节点
+        treeCtrl->Expand(rootId);
+
+        // 设置树控件的布局
+        wxBoxSizer* treeSizer = new wxBoxSizer(wxVERTICAL);
+        treeSizer->Add(treeCtrl, 30, wxEXPAND | wxALL, 10);
+        subPanel->SetSizer(treeSizer);
+
+        // 绑定子面板大小变化事件，确保树控件在大小变化时也跟随调整
+        subPanel->Bind(wxEVT_SIZE, [this](wxSizeEvent& event) {
+            wxSize size = event.GetSize();
+            // 将树控件的宽度设置为子面板宽度的25%
+            treeCtrl->SetSize(size.x * 0.25, size.y);
             event.Skip(); // 继续处理事件
             });
 
@@ -151,9 +158,8 @@ public:
         Bind(wxEVT_MENU, &MyFrame::OnPaste, this, ID_PASTE); // 绑定粘贴事件
         Bind(wxEVT_MENU, &MyFrame::OnCut, this, ID_CUT); // 绑定剪切事件
         Bind(wxEVT_MENU, &MyFrame::OnShowTextBox, this, ID_SHOW_TEXT_BOX);//绑定help指导文档
-        // 绑定子工具栏事件，响应工具选择
-        subtoolbar->Bind(wxEVT_TOOL, &MyFrame::OnSelectTool, this); // 绑定工具选择事件
-
+        // 绑定树控件选择事件
+        treeCtrl->Bind(wxEVT_TREE_SEL_CHANGED, &MyFrame::ToolSelected, this);
     }
 
     //private:
@@ -299,7 +305,6 @@ public:
     }
 
 
-    //添加help菜单下的指导文档
     void OnShowTextBox(wxCommandEvent& event) {
         // 创建一个新的 wxFrame 实例
         wxFrame* newFrame = new wxFrame(this, wxID_ANY, "Help Window", wxDefaultPosition, wxSize(1000, 600));
@@ -325,6 +330,9 @@ public:
         treeCtrl->AppendItem(rootId, "Guide 4");
         treeCtrl->AppendItem(rootId, "Guide 5");
 
+        // 展开根节点
+        treeCtrl->Expand(rootId);
+
         // 绑定树控件的事件处理程序
         treeCtrl->Bind(wxEVT_TREE_SEL_CHANGED, &MyFrame::OnTreeItemSelected, this);
 
@@ -335,10 +343,12 @@ public:
         newFrame->Show();
     }
 
+
     //处理树控件选择事件的函数
     void OnTreeItemSelected(wxTreeEvent& event) {
         wxTreeItemId itemId = event.GetItem();
         wxString nodeName = treeCtrl->GetItemText(itemId);
+       
 
         // 根据所选节点名称更新文本框内容
         if (nodeName == "Guide 1") {
@@ -359,34 +369,32 @@ public:
     }
 
 
-    // 处理选择工具事件
-    void OnSelectTool(wxCommandEvent& event) {
-        int toolId = event.GetId(); // 获取被选择工具的ID
-        switch (toolId) { // 根据工具ID选择相应的工具
-        case 1: // 选择与门工具
-            drawPanel->SetCurrentTool(DrawPanel::Tool::AND_GATE);
-            break;
-        case 2: // 选择或门工具
-            drawPanel->SetCurrentTool(DrawPanel::Tool::OR_GATE);
-            break;
-        case 3: // 选择非门工具
-            drawPanel->SetCurrentTool(DrawPanel::Tool::NOT_GATE);
-            break;
-        case 4: // 选择与非门工具
-            drawPanel->SetCurrentTool(DrawPanel::Tool::NAND_GATE);
-            break;
-        case 5: // 选择或非门工具
-            drawPanel->SetCurrentTool(DrawPanel::Tool::NOR_GATE);
-            break;
-        case 6: // 选择异或门工具
-            drawPanel->SetCurrentTool(DrawPanel::Tool::XOR_GATE);
-            break;
-        case 7: // 选择同或门工具
-            drawPanel->SetCurrentTool(DrawPanel::Tool::XNOR_GATE);
-            break;
-        case 8: // 删除工具逻辑不再需要，因为使用右键菜单删除
+    // 处理树控件选择事件的函数
+    void ToolSelected(wxTreeEvent& event) {
+        wxTreeItemId itemId = event.GetItem();
+        wxString nodeName = treeCtrl->GetItemText(itemId);
 
-            break;
+        // 根据所选节点名称选择相应的工具
+        if (nodeName == "AND Gate") {
+            drawPanel->SetCurrentTool(DrawPanel::Tool::AND_GATE);
+        }
+        else if (nodeName == "OR Gate") {
+            drawPanel->SetCurrentTool(DrawPanel::Tool::OR_GATE);
+        }
+        else if (nodeName == "NOT Gate") {
+            drawPanel->SetCurrentTool(DrawPanel::Tool::NOT_GATE);
+        }
+        else if (nodeName == "NAND Gate") {
+            drawPanel->SetCurrentTool(DrawPanel::Tool::NAND_GATE);
+        }
+        else if (nodeName == "NOR Gate") {
+            drawPanel->SetCurrentTool(DrawPanel::Tool::NOR_GATE);
+        }
+        else if (nodeName == "XOR Gate") {
+            drawPanel->SetCurrentTool(DrawPanel::Tool::XOR_GATE);
+        }
+        else if (nodeName == "XNOR Gate") {
+            drawPanel->SetCurrentTool(DrawPanel::Tool::XNOR_GATE);
         }
     }
 };

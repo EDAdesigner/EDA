@@ -151,7 +151,7 @@ public:
         bool highlightOutput = false;
 
         // 绘制直线部分
-        dc.SetPen(wxPen(*wxBLACK, 2)); // 设置边框颜色和宽度
+        dc.SetPen(wxPen(*wxBLACK,4)); // 设置边框颜色和宽度
         int i = 0;
         for (const auto& line : componentJson["lines"]) {
             i++;
@@ -193,14 +193,14 @@ public:
                     highlightInput = true;
                 }
                 else {
-                    dc.SetPen(wxPen(*wxBLACK, 2));
+                    dc.SetPen(wxPen(*wxBLACK, 4));
                 }
 
                 // 绘制输入端线段
                 dc.DrawLine(snapPoint.x + start.x, snapPoint.y + start.y, snapPoint.x + end.x, snapPoint.y + end.y);
             }
             // 恢复默认线条样式
-            dc.SetPen(wxPen(*wxBLACK, 2));
+            dc.SetPen(wxPen(*wxBLACK, 4));
         }
 
 
@@ -216,7 +216,7 @@ public:
                     highlightOutput = true;
                 }
                 else {
-                    dc.SetPen(wxPen(*wxBLACK, 2)); // 默认黑色，粗细2
+                    dc.SetPen(wxPen(*wxBLACK, 4)); // 默认黑色，粗细2
                 }
 
                 // 绘制输出端线段
@@ -224,7 +224,7 @@ public:
             }
         }
         // 恢复默认线条样式
-        dc.SetPen(wxPen(*wxBLACK, 2));
+        dc.SetPen(wxPen(*wxBLACK, 4));
     }
 
     bool IsMouseOverLine(const wxPoint& start, const wxPoint& end, const wxPoint& mousePos) {

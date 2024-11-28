@@ -20,5 +20,5 @@ public:
     }
 };
 
-    // 实现应用程序入口点
-    wxIMPLEMENT_APP(MyApp);
+    // 实现应用程序入口点  
+      wxIMPLEMENT_APP(MyApp);

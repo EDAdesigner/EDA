@@ -7,7 +7,12 @@
 #include <wx/dcbuffer.h>
 #include <wx/frame.h>       // 包含框架窗口相关功能
 #include <wx/treectrl.h>    // 包含树控件的相关功能
+#include <fstream>
+#include <nlohmann/json.hpp>
+#include <wx/dc.h>
+#include <wx/pen.h>
 
+using json = nlohmann::json;
 
 class DrawPanel : public wxPanel {
     friend class MyFrame; // 声明 MyFrame 为友元类,使得wxframe能够访问DrawPanel的私有方法
@@ -15,6 +20,7 @@ public:
     enum class Tool { NONE, AND_GATE, OR_GATE, NOT_GATE, NAND_GATE, NOR_GATE, XOR_GATE, XNOR_GATE, }; // 定义工具类型，包括无工具、与门、或门和非门 // 定义工具类型，包括无工具、与门、或门和非门
     wxBitmap* bitmap = nullptr;// 新增位图指针
     wxTimer* moveTimer;
+    int connectionStartIndex;
 
 
     DrawPanel(wxWindow* parent)
@@ -56,7 +62,9 @@ public:
     wxPoint dragStartPos;
     wxPoint componentOffset; // 新增：记录元件相对于鼠标的偏移
     wxPoint startPoint; // 连线起始点
-    int connectionStartIndex; // 声明变量
+    wxPoint m_mousePos;// 存储鼠标的网格位置
+
+
 
     void OnPaint(wxPaintEvent& event) {
         wxBufferedPaintDC dc(this);
@@ -64,6 +72,12 @@ public:
         dc.SetBackground(*wxWHITE_BRUSH);
         dc.Clear();
         Render(dc);
+        if (m_mousePos.x >= 0 && m_mousePos.y >= 0) {
+            // 绘制蓝色高亮圆圈
+            dc.SetPen(wxPen(wxColour(0, 0, 255), 1));  // 设置蓝色边框
+            dc.SetBrush(wxBrush(wxColour(0, 0, 255), wxBRUSHSTYLE_TRANSPARENT));  // 设置透明填充
+            dc.DrawCircle(m_mousePos, 3);  // 绘制半径为10的圆圈
+        }
     }
 
     void Render(wxDC& dc) {
@@ -84,177 +98,130 @@ public:
             dc.DrawLine(0, j, GetSize().GetWidth(), j);
         }
     }
-
+    
     void DrawComponent(wxDC& dc, Tool tool, const wxPoint& pos) {
+        // 将位置映射到网格
         int gridX = (pos.x / 20) * 20;
         int gridY = (pos.y / 20) * 20;
         wxPoint snapPoint(gridX, gridY);
-        // 根据工具类型绘制对应的组件
-        if (tool == Tool::AND_GATE) {
-            dc.SetPen(wxPen(*wxBLACK, 4)); // 边框颜色和宽度
-            //绘制与门直线部分
-            dc.DrawLine(snapPoint.x - 20, snapPoint.y - 20, snapPoint.x, snapPoint.y - 20);
-            dc.DrawLine(snapPoint.x - 20, snapPoint.y - 20, snapPoint.x - 20, snapPoint.y + 20);
-            dc.DrawLine(snapPoint.x - 20, snapPoint.y + 20, snapPoint.x, snapPoint.y + 20);
-            //绘制与门圆弧部分
-            wxPoint points[5] = {
-                wxPoint(snapPoint.x, snapPoint.y - 20),
-                wxPoint(snapPoint.x + 10, snapPoint.y - 17),
-                wxPoint(snapPoint.x + 20, snapPoint.y),
-                wxPoint(snapPoint.x + 10, snapPoint.y + 17),
-                wxPoint(snapPoint.x, snapPoint.y + 20),
-            };
-            dc.DrawSpline(5, points);
-            //绘制输入输出口
-            dc.DrawLine(snapPoint.x - 20, snapPoint.y + 10, snapPoint.x - 27, snapPoint.y + 10);
-            dc.DrawLine(snapPoint.x - 20, snapPoint.y - 10, snapPoint.x - 27, snapPoint.y - 10);
-            dc.DrawLine(snapPoint.x + 20, snapPoint.y, snapPoint.x + 25, snapPoint.y);
+
+        // 根据工具类型选择对应的 JSON 文件
+        std::string toolName;
+        switch (tool) {
+        case Tool::AND_GATE:
+            toolName = "AND_GATE.json";
+            break;
+        case Tool::OR_GATE:
+            toolName = "OR_GATE.json";
+            break;
+        case Tool::NOT_GATE:
+            toolName = "NOT_GATE.json";
+            break;
+        case Tool::NAND_GATE:
+            toolName = "NAND_GATE.json";
+            break;
+        case Tool::NOR_GATE:
+            toolName = "NOR_GATE.json";
+            break;
+        case Tool::XOR_GATE:
+            toolName = "XOR_GATE.json";
+            break;
+        case Tool::XNOR_GATE:
+            toolName = "XNOR_GATE.json";
+            break;
+        default:
+            return;
         }
-        else if (tool == Tool::OR_GATE) {
-            dc.SetPen(wxPen(*wxBLACK, 4)); // 边框颜色和宽度;
-            //绘制或门左侧部分
-            wxPoint leftPoints[3] = {
-                wxPoint(snapPoint.x - 20, snapPoint.y - 20),
-                wxPoint(snapPoint.x - 10, snapPoint.y),
-                wxPoint(snapPoint.x - 20, snapPoint.y + 20),
-            };
-            dc.DrawSpline(3, leftPoints);
-            //绘制或门右侧部分
-            wxPoint rightPoints[5] = {
-                wxPoint(snapPoint.x - 20, snapPoint.y - 20),
-                wxPoint(snapPoint.x, snapPoint.y - 18),
-                wxPoint(snapPoint.x + 25, snapPoint.y),
-                wxPoint(snapPoint.x, snapPoint.y + 18),
-                wxPoint(snapPoint.x - 20, snapPoint.y + 20)
-            };
-            dc.DrawSpline(5, rightPoints);
-            //绘制输入输出口
-            dc.DrawLine(snapPoint.x - 14, snapPoint.y + 10, snapPoint.x - 25, snapPoint.y + 10);
-            dc.DrawLine(snapPoint.x - 14, snapPoint.y - 10, snapPoint.x - 25, snapPoint.y - 10);
-            dc.DrawLine(snapPoint.x + 20, snapPoint.y, snapPoint.x + 25, snapPoint.y);
+
+        // 加载对应的 JSON 文件
+        std::ifstream file("tools/" + toolName);
+        if (!file.is_open()) {
+            wxLogError("Cannot open the JSON file for %s", toolName);
+            return;
         }
-        else if (tool == Tool::NOT_GATE) {
-            dc.SetPen(wxPen(*wxBLACK, 4)); // 边框颜色和宽度;
-            //绘制非门左侧部分
-            dc.DrawLine(snapPoint.x - 20, snapPoint.y - 20, snapPoint.x + 12, snapPoint.y);
-            dc.DrawLine(snapPoint.x - 20, snapPoint.y + 20, snapPoint.x - 20, snapPoint.y - 20);
-            dc.DrawLine(snapPoint.x - 20, snapPoint.y + 20, snapPoint.x + 12, snapPoint.y);
-            //绘制非门右侧部分
-            dc.DrawCircle(snapPoint.x + 16, snapPoint.y, 4);
-            //绘制输入输出口
-            dc.DrawLine(snapPoint.x - 20, snapPoint.y, snapPoint.x - 27, snapPoint.y);
-            dc.DrawLine(snapPoint.x + 20, snapPoint.y, snapPoint.x + 25, snapPoint.y);
+
+        json componentJson;
+        file >> componentJson;
+        file.close();
+
+        // 记录是否有输入或输出部分被高亮
+        bool highlightInput = false;
+        bool highlightOutput = false;
+
+        // 绘制直线部分
+        dc.SetPen(wxPen(*wxBLACK, 2)); // 设置边框颜色和宽度
+        for (const auto& line : componentJson["lines"]) {
+            wxPoint start(line["start"][0].get<int>(), line["start"][1].get<int>());
+            wxPoint end(line["end"][0].get<int>(), line["end"][1].get<int>());
+            dc.DrawLine(snapPoint.x + start.x, snapPoint.y + start.y, snapPoint.x + end.x, snapPoint.y + end.y);
         }
-        else if (tool == Tool::NAND_GATE) {
-            dc.SetPen(wxPen(*wxBLACK, 4)); // 边框颜色和宽度;
-            //绘制与非门左侧直线部分
-            dc.DrawLine(snapPoint.x - 20, snapPoint.y - 20, snapPoint.x - 4, snapPoint.y - 20);
-            dc.DrawLine(snapPoint.x - 20, snapPoint.y - 20, snapPoint.x - 20, snapPoint.y + 20);
-            dc.DrawLine(snapPoint.x - 20, snapPoint.y + 20, snapPoint.x - 4, snapPoint.y + 20);
-            //绘制与非门圆弧部分
-            wxPoint points[5] = {
-                wxPoint(snapPoint.x - 4, snapPoint.y - 20),
-                wxPoint(snapPoint.x + 6, snapPoint.y - 17),
-                wxPoint(snapPoint.x + 16, snapPoint.y),
-                wxPoint(snapPoint.x + 6, snapPoint.y + 17),
-                wxPoint(snapPoint.x - 4, snapPoint.y + 20),
-            };
-            dc.DrawSpline(5, points);
-            //绘制与非门右侧部分
-            dc.DrawCircle(snapPoint.x + 16, snapPoint.y, 4);
-            //绘制输入输出口
-            dc.DrawLine(snapPoint.x - 20, snapPoint.y + 10, snapPoint.x - 27, snapPoint.y + 10);
-            dc.DrawLine(snapPoint.x - 20, snapPoint.y - 10, snapPoint.x - 27, snapPoint.y - 10);
-            dc.DrawLine(snapPoint.x + 20, snapPoint.y, snapPoint.x + 25, snapPoint.y);
+        // 绘制曲线部分（如有）
+        if (componentJson.contains("splines")) {
+            for (const auto& spline : componentJson["splines"]) {
+                std::vector<wxPoint> points;
+                for (const auto& point : spline["points"]) {
+                    points.push_back(wxPoint(snapPoint.x + point[0].get<int>(), snapPoint.y + point[1].get<int>()));
+                }
+                dc.DrawSpline(points.size(), points.data());
+            }
         }
-        else if (tool == Tool::NOR_GATE) {
-            dc.SetPen(wxPen(*wxBLACK, 4)); // 边框颜色和宽度;
-            //绘制或非门左侧弧线部分
-            wxPoint leftPoints[3] = {
-                wxPoint(snapPoint.x - 20, snapPoint.y - 20),
-                wxPoint(snapPoint.x - 10, snapPoint.y),
-                wxPoint(snapPoint.x - 20, snapPoint.y + 20),
-            };
-            dc.DrawSpline(3, leftPoints);
-            //绘制或非门右侧弧线部分
-            wxPoint rightPoints[5] = {
-                wxPoint(snapPoint.x - 20, snapPoint.y - 20),
-                wxPoint(snapPoint.x, snapPoint.y - 18),
-                wxPoint(snapPoint.x + 18, snapPoint.y),
-                wxPoint(snapPoint.x, snapPoint.y + 18),
-                wxPoint(snapPoint.x - 20, snapPoint.y + 20)
-            };
-            dc.DrawSpline(5, rightPoints);
-            //绘制或非门圆圈部分
-            dc.DrawCircle(snapPoint.x + 16, snapPoint.y, 4);
-            //绘制输入输出口
-            dc.DrawLine(snapPoint.x - 14, snapPoint.y + 10, snapPoint.x - 25, snapPoint.y + 10);
-            dc.DrawLine(snapPoint.x - 14, snapPoint.y - 10, snapPoint.x - 25, snapPoint.y - 10);
-            dc.DrawLine(snapPoint.x + 20, snapPoint.y, snapPoint.x + 25, snapPoint.y);
+
+        // 绘制圆形部分（如有）
+        if (componentJson.contains("circle")) {
+            auto circle = componentJson["circle"];
+            int cx = circle["center"][0].get<int>();
+            int cy = circle["center"][1].get<int>();
+            int radius = circle["radius"].get<int>();
+            dc.DrawCircle(snapPoint.x + cx, snapPoint.y + cy, radius);
         }
-        else if (tool == Tool::XOR_GATE) {
-            dc.SetPen(wxPen(*wxBLACK, 4)); // 边框颜色和宽度;
-            //绘制异或门左侧弧线部分
-            wxPoint leftPoints[3] = {
-                wxPoint(snapPoint.x - 20, snapPoint.y - 20),
-                wxPoint(snapPoint.x - 10, snapPoint.y),
-                wxPoint(snapPoint.x - 20, snapPoint.y + 20),
-            };
-            dc.DrawSpline(3, leftPoints);
-            //绘制异或门中间弧线部分
-            wxPoint centerPoints[3] = {
-                wxPoint(snapPoint.x - 15, snapPoint.y - 20),
-                wxPoint(snapPoint.x - 5, snapPoint.y),
-                wxPoint(snapPoint.x - 15, snapPoint.y + 20),
-            };
-            dc.DrawSpline(3, centerPoints);
-            //绘制异或门右侧弧线部分
-            wxPoint rightPoints[5] = {
-                wxPoint(snapPoint.x - 15, snapPoint.y - 20),
-                wxPoint(snapPoint.x, snapPoint.y - 18),
-                wxPoint(snapPoint.x + 25, snapPoint.y),
-                wxPoint(snapPoint.x, snapPoint.y + 18),
-                wxPoint(snapPoint.x - 15, snapPoint.y + 20)
-            };
-            dc.DrawSpline(5, rightPoints);
-            //绘制输入输出口
-            dc.DrawLine(snapPoint.x - 16, snapPoint.y + 10, snapPoint.x - 25, snapPoint.y + 10);
-            dc.DrawLine(snapPoint.x - 16, snapPoint.y - 10, snapPoint.x - 25, snapPoint.y - 10);
-            dc.DrawLine(snapPoint.x + 20, snapPoint.y, snapPoint.x + 25, snapPoint.y);
+        // 绘制输入口
+        if (componentJson.contains("inputs")) {
+            for (const auto& input : componentJson["inputs"]) {
+                wxPoint start(input["start"][0].get<int>(), input["start"][1].get<int>());
+                wxPoint end(input["end"][0].get<int>(), input["end"][1].get<int>());
+
+                // 检查鼠标是否在输入端
+                if (IsMouseOverLine(start + snapPoint, end + snapPoint, m_mousePos)) {
+                    dc.SetPen(wxPen(wxColour(255, 0, 0), 7)); // 红色，粗细7
+                }
+                else {
+                    dc.SetPen(wxPen(*wxBLACK, 2)); // 默认黑色，粗细2
+                }
+            }
         }
-        else if (tool == Tool::XNOR_GATE) {
-            dc.SetPen(wxPen(*wxBLACK, 4)); // 边框颜色和宽度;
-            //绘制同或门左侧弧线部分
-            wxPoint leftPoints[3] = {
-                wxPoint(snapPoint.x - 20, snapPoint.y - 20),
-                wxPoint(snapPoint.x - 10, snapPoint.y),
-                wxPoint(snapPoint.x - 20, snapPoint.y + 20),
-            };
-            dc.DrawSpline(3, leftPoints);
-            //绘制同或门中间弧线部分
-            wxPoint centerPoints[3] = {
-                wxPoint(snapPoint.x - 15, snapPoint.y - 20),
-                wxPoint(snapPoint.x - 5, snapPoint.y),
-                wxPoint(snapPoint.x - 15, snapPoint.y + 20),
-            };
-            dc.DrawSpline(3, centerPoints);
-            //绘制同或门右侧弧线部分
-            wxPoint rightPoints[5] = {
-                wxPoint(snapPoint.x - 15, snapPoint.y - 20),
-                wxPoint(snapPoint.x, snapPoint.y - 18),
-                wxPoint(snapPoint.x + 19, snapPoint.y),
-                wxPoint(snapPoint.x, snapPoint.y + 18),
-                wxPoint(snapPoint.x - 15, snapPoint.y + 20)
-            };
-            dc.DrawSpline(5, rightPoints);
-            //绘制同或门右侧圆圈部分
-            dc.DrawCircle(snapPoint.x + 16, snapPoint.y, 4);
-            //绘制输入输出口
-            dc.DrawLine(snapPoint.x - 16, snapPoint.y + 10, snapPoint.x - 25, snapPoint.y + 10);
-            dc.DrawLine(snapPoint.x - 16, snapPoint.y - 10, snapPoint.x - 25, snapPoint.y - 10);
-            dc.DrawLine(snapPoint.x + 20, snapPoint.y, snapPoint.x + 25, snapPoint.y);
-        }
+        // 绘制输出口
+        if (componentJson.contains("output")) {
+            auto output = componentJson["output"];
+            wxPoint start(output["start"][0].get<int>(), output["start"][1].get<int>());
+            wxPoint end(output["end"][0].get<int>(), output["end"][1].get<int>());
+
+            // 检查鼠标是否在输出端
+            if (IsMouseOverLine(start + snapPoint, end + snapPoint, m_mousePos)) {
+                dc.SetPen(wxPen(wxColour(255, 0, 0), 7)); // 红色，粗细7
+            }
+            else {
+                dc.SetPen(wxPen(*wxBLACK, 2)); // 默认黑色，粗细2
+            }
+
+         }
+
+
+        // 恢复默认线条样式
+        dc.SetPen(wxPen(*wxBLACK, 2));
     }
+
+    bool IsMouseOverLine(const wxPoint& start, const wxPoint& end, const wxPoint& mousePos) {
+        // 计算线段的矩形区域
+        int minX = std::min(start.x, end.x);
+        int maxX = std::max(start.x, end.x);
+        int minY = std::min(start.y, end.y);
+        int maxY = std::max(start.y, end.y);
+
+        // 判断鼠标是否在该区域内，允许一定的误差
+        return (mousePos.x >= minX - 5 && mousePos.x <= maxX + 5 &&
+            mousePos.y >= minY - 5 && mousePos.y <= maxY + 5);
+    }
+
     void DrawConnections(wxDC& dc) {
         dc.SetPen(wxPen(*wxBLUE, 2));
         for (const auto& connection : connections) {
@@ -319,13 +286,16 @@ public:
             wxPoint newComponentPos = pos - componentOffset; // 使用偏移计算新位置
             wxPoint& componentPos = components[draggedComponentIndex].second;
             componentPos = newComponentPos;
-
             // 更新连接线位置
             UpdateConnections(draggedComponentIndex, newComponentPos - componentPos);
-
             Refresh();
             Update();
         }
+            wxPoint mousePos = event.GetPosition();
+            m_mousePos = wxPoint(mousePos.x / 20 * 20, mousePos.y / 20 * 20);
+            // 刷新画面来重新绘制高亮圆圈
+            Refresh();
+        
     }
 
     void UpdateConnections(int index, const wxPoint& offset) {

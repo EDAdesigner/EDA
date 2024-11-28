@@ -174,6 +174,7 @@ public:
             int radius = circle["radius"].get<int>();
             dc.DrawCircle(snapPoint.x + cx, snapPoint.y + cy, radius);
         }
+
         // 绘制输入口
         if (componentJson.contains("inputs")) {
             for (const auto& input : componentJson["inputs"]) {
@@ -187,8 +188,10 @@ public:
                 else {
                     dc.SetPen(wxPen(*wxBLACK, 2)); // 默认黑色，粗细2
                 }
+                dc.DrawLine(snapPoint.x + start.x, snapPoint.y + start.y ,snapPoint.x + end.x, snapPoint.y + end.y);
             }
         }
+
         // 绘制输出口
         if (componentJson.contains("output")) {
             auto output = componentJson["output"];
@@ -202,7 +205,7 @@ public:
             else {
                 dc.SetPen(wxPen(*wxBLACK, 2)); // 默认黑色，粗细2
             }
-
+            dc.DrawLine(snapPoint.x + start.x, snapPoint.y + start.y, snapPoint.x + end.x, snapPoint.y + end.y);
          }
 
 

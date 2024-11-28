@@ -10,7 +10,7 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <wx/dc.h>
-#include <wx/pen.h>
+//#include <wx/pen.h>
 
 using json = nlohmann::json;
 
@@ -21,7 +21,7 @@ public:
     wxBitmap* bitmap = nullptr;// 新增位图指针
     wxTimer* moveTimer;
     int connectionStartIndex;
-
+    double scaleFactor = 0.5;//缩小比例，在每个映射时除以该因子
 
     DrawPanel(wxWindow* parent)
         : wxPanel(parent), currentTool(Tool::NONE), dragging(false), moveTimer(new wxTimer(this)), connecting(false), startPoint(wxPoint(-1, -1)), connectionStartIndex(-1) {
@@ -71,6 +71,7 @@ public:
         PrepareDC(dc);
         dc.SetBackground(*wxWHITE_BRUSH);
         dc.Clear();
+        dc.SetUserScale(scaleFactor, scaleFactor);
         Render(dc);
         if (m_mousePos.x >= 0 && m_mousePos.y >= 0) {
             // 绘制蓝色高亮圆圈
@@ -81,15 +82,16 @@ public:
     }
 
     void Render(wxDC& dc) {
-        DrawGrid(dc);
-        for (const auto& component : components) {
-            DrawComponent(dc, component.first, component.second);
+        //DrawGrid(dc);  // 绘制网格
+        for (size_t i = 0; i < components.size(); ++i) {
+            const auto& component = components[i];
+            DrawComponent(dc, component.first, component.second, i);
         }
-        DrawConnections(dc);
-
+        DrawConnections(dc);  // 绘制连接线
     }
 
-    void DrawGrid(wxDC& dc) {
+
+    /*void DrawGrid(wxDC& dc) {
         dc.SetPen(wxPen(wxColour(200, 200, 200), 1, wxPENSTYLE_DOT));
         for (int i = 0; i < GetSize().GetWidth(); i += 20) {
             dc.DrawLine(i, 0, i, GetSize().GetHeight());
@@ -97,12 +99,12 @@ public:
         for (int j = 0; j < GetSize().GetHeight(); j += 20) {
             dc.DrawLine(0, j, GetSize().GetWidth(), j);
         }
-    }
+    }*/
     
-    void DrawComponent(wxDC& dc, Tool tool, const wxPoint& pos) {
+    void DrawComponent(wxDC& dc, Tool tool, const wxPoint& pos, size_t index) {
         // 将位置映射到网格
-        int gridX = (pos.x / 20) * 20;
-        int gridY = (pos.y / 20) * 20;
+        int gridX = (pos.x / 20) * 20/scaleFactor;
+        int gridY = (pos.y / 20) * 20/scaleFactor;
         wxPoint snapPoint(gridX, gridY);
 
         // 根据工具类型选择对应的 JSON 文件
@@ -150,7 +152,9 @@ public:
 
         // 绘制直线部分
         dc.SetPen(wxPen(*wxBLACK, 2)); // 设置边框颜色和宽度
+        int i = 0;
         for (const auto& line : componentJson["lines"]) {
+            i++;
             wxPoint start(line["start"][0].get<int>(), line["start"][1].get<int>());
             wxPoint end(line["end"][0].get<int>(), line["end"][1].get<int>());
             dc.DrawLine(snapPoint.x + start.x, snapPoint.y + start.y, snapPoint.x + end.x, snapPoint.y + end.y);
@@ -180,35 +184,45 @@ public:
             for (const auto& input : componentJson["inputs"]) {
                 wxPoint start(input["start"][0].get<int>(), input["start"][1].get<int>());
                 wxPoint end(input["end"][0].get<int>(), input["end"][1].get<int>());
-
                 // 检查鼠标是否在输入端
+                bool isMouseOver = IsMouseOverLine(start + snapPoint, end + snapPoint, m_mousePos);
+
+                // 设置绘制样式：如果鼠标在输入端，使用红色高亮；否则使用默认黑色
+                if (isMouseOver) {
+                    dc.SetPen(wxPen(wxColour(255, 0, 0), 7));
+                    highlightInput = true;
+                }
+                else {
+                    dc.SetPen(wxPen(*wxBLACK, 2));
+                }
+
+                // 绘制输入端线段
+                dc.DrawLine(snapPoint.x + start.x, snapPoint.y + start.y, snapPoint.x + end.x, snapPoint.y + end.y);
+            }
+            // 恢复默认线条样式
+            dc.SetPen(wxPen(*wxBLACK, 2));
+        }
+
+
+        // 绘制输出口
+        if (componentJson.contains("outputs")) {
+            for (const auto& output : componentJson["outputs"]) {
+                wxPoint start(output["start"][0].get<int>(), output["start"][1].get<int>());
+                wxPoint end(output["end"][0].get<int>(), output["end"][1].get<int>());
+
+                // 检查鼠标是否在输出端
                 if (IsMouseOverLine(start + snapPoint, end + snapPoint, m_mousePos)) {
                     dc.SetPen(wxPen(wxColour(255, 0, 0), 7)); // 红色，粗细7
+                    highlightOutput = true;
                 }
                 else {
                     dc.SetPen(wxPen(*wxBLACK, 2)); // 默认黑色，粗细2
                 }
-                dc.DrawLine(snapPoint.x + start.x, snapPoint.y + start.y ,snapPoint.x + end.x, snapPoint.y + end.y);
+
+                // 绘制输出端线段
+                dc.DrawLine(snapPoint.x + start.x, snapPoint.y + start.y, snapPoint.x + end.x, snapPoint.y + end.y);
             }
         }
-
-        // 绘制输出口
-        if (componentJson.contains("output")) {
-            auto output = componentJson["output"];
-            wxPoint start(output["start"][0].get<int>(), output["start"][1].get<int>());
-            wxPoint end(output["end"][0].get<int>(), output["end"][1].get<int>());
-
-            // 检查鼠标是否在输出端
-            if (IsMouseOverLine(start + snapPoint, end + snapPoint, m_mousePos)) {
-                dc.SetPen(wxPen(wxColour(255, 0, 0), 7)); // 红色，粗细7
-            }
-            else {
-                dc.SetPen(wxPen(*wxBLACK, 2)); // 默认黑色，粗细2
-            }
-            dc.DrawLine(snapPoint.x + start.x, snapPoint.y + start.y, snapPoint.x + end.x, snapPoint.y + end.y);
-         }
-
-
         // 恢复默认线条样式
         dc.SetPen(wxPen(*wxBLACK, 2));
     }
@@ -221,6 +235,7 @@ public:
         int maxY = std::max(start.y, end.y);
 
         // 判断鼠标是否在该区域内，允许一定的误差
+
         return (mousePos.x >= minX - 5 && mousePos.x <= maxX + 5 &&
             mousePos.y >= minY - 5 && mousePos.y <= maxY + 5);
     }
@@ -251,7 +266,9 @@ public:
     void OnLeftDown(wxMouseEvent& event) {
         wxPoint pos = event.GetPosition();
 
+        // 尝试找到鼠标按下时所在的组件
         for (size_t i = 0; i < components.size(); ++i) {
+            // 简单的碰撞检测，如果鼠标位置接近组件位置，就认为找到了该组件
             if (abs(components[i].second.x - pos.x) < 20 && abs(components[i].second.y - pos.y) < 20) {
                 if (connecting) {
                     connections.emplace_back(connectionStartIndex, i);
@@ -262,18 +279,18 @@ public:
                 dragging = true;
                 draggedComponentIndex = i;
                 dragStartPos = pos;
-                componentOffset = pos - components[i].second; // 记录偏移
-                CaptureMouse();
+                componentOffset = pos - components[i].second;  // 记录鼠标按下时相对组件的位置
+                CaptureMouse();  // 捕获鼠标
                 return;
             }
         }
 
+        // 如果没有找到组件并且有选中的工具，创建一个新组件
         if (!dragging && currentTool != Tool::NONE) {
             components.emplace_back(currentTool, pos);
             Refresh();
         }
     }
-
 
     void OnLeftUp(wxMouseEvent& event) {
         // 释放拖动标记
@@ -294,11 +311,35 @@ public:
             Refresh();
             Update();
         }
-            wxPoint mousePos = event.GetPosition();
-            m_mousePos = wxPoint(mousePos.x / 20 * 20, mousePos.y / 20 * 20);
-            // 刷新画面来重新绘制高亮圆圈
-            Refresh();
-        
+        wxPoint mousePos = event.GetPosition();
+        // 根据缩放因子计算鼠标在缩放后的坐标
+        mousePos.x /= scaleFactor;
+        mousePos.y /= scaleFactor;
+        m_mousePos = wxPoint(mousePos.x / 20 * 20, mousePos.y / 20 * 20);
+        // 刷新画面来重新绘制高亮圆圈
+        Refresh();
+
+    }
+
+
+    std::string GetComponentFileName(Tool tool) {
+        switch (tool) {
+        case Tool::AND_GATE: return "AND_GATE.json";
+        case Tool::OR_GATE: return "OR_GATE.json";
+        case Tool::NOT_GATE: return "NOT_GATE.json";
+        case Tool::NAND_GATE: return "NAND_GATE.json";
+        case Tool::NOR_GATE: return "NOR_GATE.json";
+        case Tool::XOR_GATE: return "XOR_GATE.json";
+        case Tool::XNOR_GATE: return "XNOR_GATE.json";
+        default: return "";
+        }
+    }
+
+    wxPoint GetSnapPoint(const wxPoint& pos) {
+        // 将位置映射到网格上 (网格大小为 20)
+        int gridX = (pos.x / 20) * 20;
+        int gridY = (pos.y / 20) * 20;
+        return wxPoint(gridX, gridY);  // 返回对齐后的点
     }
 
     void UpdateConnections(int index, const wxPoint& offset) {
@@ -314,7 +355,7 @@ public:
         }
     }
 
-    // 添加一个新的方法处理定时器事件
+
     void OnMoveTimer(wxTimerEvent&) {
         Refresh(); // 刷新绘图
         moveTimer->Stop(); // 停止定时器

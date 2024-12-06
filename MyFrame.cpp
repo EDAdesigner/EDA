@@ -194,23 +194,30 @@ public:
         wxFileDialog openFileDialog(this, "Open File", "", "", "JSON files (*.json)|*.json", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
         if (openFileDialog.ShowModal() == wxID_OK) { // 显示对话框并检查用户是否选择了文件
             wxString path = openFileDialog.GetPath(); // 获取选定文件的路径
-            //wxLogMessage("Opened file: %s", path); // 在日志中记录打开文件的路径
 
             // 读取文件内容
             std::ifstream file(path.ToStdString());
             if (file.is_open()) {
-                json all_component;
-                file >> all_component; // 解析JSON文件内容
+                json all_data;
+                file >> all_data; // 解析JSON文件内容
 
-                // 清空当前组件
+                // 清空当前组件和连接
                 drawPanel->components.clear();
+                drawPanel->connections.clear();
 
                 // 将JSON对象转换为组件
-                for (const auto& component_json : all_component) {
-                    DrawPanel::Tool type = static_cast<DrawPanel::Tool>(component_json["type"].get<int>());
+                for (const auto& component_json : all_data["components"]) {
+                    Component::Tool type = static_cast<Component::Tool>(component_json["type"].get<int>());
                     int x = component_json["x"].get<int>();
                     int y = component_json["y"].get<int>();
                     drawPanel->components.emplace_back(type, wxPoint(x, y));
+                }
+
+                // 将JSON对象转换为连接
+                for (const auto& connection_json : all_data["connections"]) {
+                    int start = connection_json["start"].get<int>();
+                    int end = connection_json["end"].get<int>();
+                    drawPanel->connections.emplace_back(start, end);
                 }
 
                 // 更新绘图面板
@@ -233,38 +240,45 @@ public:
 
     // 处理保存文件事件
     void OnSave(wxCommandEvent& event) {
-        // 创建文件夹对话框，允许用户选择保存的文件夹位置
-        wxDirDialog saveDirDialog(this, "Select Directory", "", wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
-        if (saveDirDialog.ShowModal() == wxID_OK) { // 显示对话框并检查用户是否选择了文件夹
-            wxString dirPath = saveDirDialog.GetPath(); // 获取用户选择的文件夹路径
+        // 创建文件对话框，允许用户选择保存文件的位置
+        wxFileDialog saveFileDialog(this, "Save File", "", "", "JSON files (*.json)|*.json", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+        if (saveFileDialog.ShowModal() == wxID_OK) { // 显示对话框并检查用户是否选择了文件
+            wxString path = saveFileDialog.GetPath(); // 获取选定文件的路径
 
-            // 创建输入对话框，允许用户输入文件名
-            wxTextEntryDialog fileNameDialog(this, "Enter file name", "File Name", "new_file");
-            if (fileNameDialog.ShowModal() == wxID_OK) { // 显示对话框并检查用户是否输入了文件名
-                wxString fileName = fileNameDialog.GetValue() + ".json"; // 获取用户输入的文件名
+            // 创建JSON对象
+            json all_component = json::array();
 
-                // 创建新文件的完整路径
-                wxString filePath = dirPath + "/" + fileName;
+            // 将组件转换为JSON对象
+            for (const auto& component : drawPanel->components) {
+                json component_json;
+                component_json["type"] = static_cast<int>(component.tool);
+                component_json["x"] = component.position.x;
+                component_json["y"] = component.position.y;
+                all_component.push_back(component_json);
+            }
 
-                // 创建JSON对象
-                json all_component;
-                for (const auto& component : drawPanel->components) {
-                    json component_json;
-                    component_json["type"] = static_cast<int>(component.first);
-                    component_json["x"] = component.second.x;
-                    component_json["y"] = component.second.y;
-                    all_component.push_back(component_json);
-                }
+            // 将连接转换为JSON对象
+            json all_connections = json::array();
+            for (const auto& connection : drawPanel->connections) {
+                json connection_json;
+                connection_json["start"] = connection.first;
+                connection_json["end"] = connection.second;
+                all_connections.push_back(connection_json);
+            }
 
-                // 将JSON对象写入文件
-                std::ofstream file(filePath.ToStdString());
-                if (file.is_open()) {
-                    file << all_component.dump(4);
-                    file.close();
-                }
-                else {
-                    wxLogError("Cannot save file '%s'.", filePath);
-                }
+            // 创建最终的JSON对象
+            json final_json;
+            final_json["components"] = all_component;
+            final_json["connections"] = all_connections;
+
+            // 将JSON对象写入文件
+            std::ofstream file(path.ToStdString());
+            if (file.is_open()) {
+                file << final_json.dump(4); // 以缩进4个空格的格式写入文件
+                file.close();
+            }
+            else {
+                wxLogError("Cannot save file '%s'.", path);
             }
         }
     }
@@ -286,22 +300,22 @@ public:
 
     // 选择所有的事件处理函数
     void OnSelectAll(wxCommandEvent& event) {
-        drawPanel->SelectAll(); // 调用 DrawPanel 中的 SelectAll 方法
+    //    drawPanel->SelectAll(); // 调用 DrawPanel 中的 SelectAll 方法
     }
 
     //复制选中的事件处理函数
     void OnCopy(wxCommandEvent& event) {
-        drawPanel->CopySelected(); // 调用 DrawPanel 中的 CopySelected 方法
+    //    drawPanel->CopySelected(); // 调用 DrawPanel 中的 CopySelected 方法
     }
 
     //粘贴复制的事件处理函数
     void OnPaste(wxCommandEvent& event) {
-        drawPanel->PasteCopied(); // 调用 DrawPanel 中的 PasteCopied 方法
+    //    drawPanel->PasteCopied(); // 调用 DrawPanel 中的 PasteCopied 方法
     }
 
     // 剪切的事件处理函数
     void OnCut(wxCommandEvent& event) {
-        drawPanel->CutSelected(); // 调用 DrawPanel 中的 CutSelected 方法
+    //    drawPanel->CutSelected(); // 调用 DrawPanel 中的 CutSelected 方法
     }
 
 
@@ -376,25 +390,25 @@ public:
 
         // 根据所选节点名称选择相应的工具
         if (nodeName == "AND Gate") {
-            drawPanel->SetCurrentTool(DrawPanel::Tool::AND_GATE);
+            drawPanel->SetCurrentTool(Component::Tool::AND_GATE);
         }
         else if (nodeName == "OR Gate") {
-            drawPanel->SetCurrentTool(DrawPanel::Tool::OR_GATE);
+            drawPanel->SetCurrentTool(Component::Tool::OR_GATE);
         }
         else if (nodeName == "NOT Gate") {
-            drawPanel->SetCurrentTool(DrawPanel::Tool::NOT_GATE);
+            drawPanel->SetCurrentTool(Component::Tool::NOT_GATE);
         }
         else if (nodeName == "NAND Gate") {
-            drawPanel->SetCurrentTool(DrawPanel::Tool::NAND_GATE);
+            drawPanel->SetCurrentTool(Component::Tool::NAND_GATE);
         }
         else if (nodeName == "NOR Gate") {
-            drawPanel->SetCurrentTool(DrawPanel::Tool::NOR_GATE);
+            drawPanel->SetCurrentTool(Component::Tool::NOR_GATE);
         }
         else if (nodeName == "XOR Gate") {
-            drawPanel->SetCurrentTool(DrawPanel::Tool::XOR_GATE);
+            drawPanel->SetCurrentTool(Component::Tool::XOR_GATE);
         }
         else if (nodeName == "XNOR Gate") {
-            drawPanel->SetCurrentTool(DrawPanel::Tool::XNOR_GATE);
+            drawPanel->SetCurrentTool(Component::Tool::XNOR_GATE);
         }
     }
 };

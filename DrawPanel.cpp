@@ -69,6 +69,10 @@ public:
         dc.SetBackground(*wxWHITE_BRUSH);
         dc.Clear();
         dc.SetUserScale(scaleFactor, scaleFactor);
+     
+        // 绘制网格点
+        DrawGrid(dc);
+
         Render(dc);
 
         if (m_mousePos.x >= 0 && m_mousePos.y >= 0) {
@@ -88,9 +92,26 @@ public:
         DrawConnections(dc);  // 绘制连接线
     }
 
+    //绘制网格点
+    void DrawGrid(wxDC& dc) {
+        const int gridSize = 20;  // 网格大小，20 像素
+        const int dotRadius = 2;  // 网格点的半径，设置为 2 像素
+
+        dc.SetPen(wxPen(wxColour(220, 220, 220), 1));  // 设置浅灰色的网格点边框
+        dc.SetBrush(wxBrush(wxColour(220, 220, 220)));  // 设置网格点的填充颜色，浅灰色
+
+        // 绘制水平和垂直方向的网格点
+        for (int y = 0; y < GetSize().y / scaleFactor; y += gridSize) {
+            for (int x = 0; x < GetSize().x / scaleFactor; x += gridSize) {
+                // 在每个网格单元的中心绘制一个小圆点
+                dc.DrawCircle(x, y, dotRadius);
+            }
+        }
+    }
+
 
     void DrawConnections(wxDC& dc) {
-        dc.SetPen(wxPen(*wxBLUE, 2));  // 设置画笔颜色和粗细
+        dc.SetPen(wxPen(*wxBLACK, 3));  // 设置画笔颜色和粗细
         for (const auto& connection : connections) {
             // 获取起始组件的第一个引脚
             wxPoint startPin = connection.first; // 获取第一个输出引脚
@@ -239,7 +260,7 @@ public:
     }
 
     void OnRightDown(wxMouseEvent& event) {
-        wxPoint pos = event.GetPosition();
+        wxPoint pos = GetSnapPoint(event.GetPosition());
         bool componentFound = false;
         int componentSelected = -1;
 
@@ -255,9 +276,9 @@ public:
             wxMenu menu;
             
             const int deleteId = wxNewId();
-            const int connectId = wxNewId();
+            //const int connectId = wxNewId();
             menu.Append(deleteId, "Delete");
-            menu.Append(connectId, "Connect");
+            //menu.Append(connectId, "Connect");
 
             // 删除操作
             Bind(wxEVT_MENU, [this, componentSelected](wxCommandEvent&) {

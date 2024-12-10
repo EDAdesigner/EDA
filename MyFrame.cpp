@@ -104,13 +104,82 @@ public:
         SetSize(800, 600); // 设置窗口的初始大小
         Show(true); // 显示窗口
 
+        // 创建AND门图标
+        wxInitAllImageHandlers();
+        wxBitmap bitmapForAndgate;
+        if (!bitmapForAndgate.LoadFile("resource/AND gate.png", wxBITMAP_TYPE_PNG)) {
+            wxLogError("Failed to load AND gate icon.");
+        }
+        else {
+            wxImage imageForAnd = bitmapForAndgate.ConvertToImage();
+            imageForAnd = imageForAnd.Scale(30, 30, wxIMAGE_QUALITY_HIGH);
+            bitmapForAndgate = wxBitmap(imageForAnd);
+        }
+        // 加载 NOT 门 图标
+        wxBitmap bitmapForNOTgate;
+        if (!bitmapForNOTgate.LoadFile("resource/NOT gate.png", wxBITMAP_TYPE_PNG)) {
+            wxLogError("Failed to load NOT gate icon.");
+        }
+        else {
+            wxImage imageForNOTgate = bitmapForNOTgate.ConvertToImage();
+            imageForNOTgate = imageForNOTgate.Scale(30, 30, wxIMAGE_QUALITY_HIGH);
+            bitmapForNOTgate = wxBitmap(imageForNOTgate);
+        }
+
+        // 加载线条图标
+        wxBitmap bitmapForLINE;
+        if (!bitmapForLINE.LoadFile("resource/LINE.png", wxBITMAP_TYPE_PNG)) {
+            wxLogError("Failed to load NOT gate icon.");
+        }
+        else {
+            wxImage imageForLINE = bitmapForLINE.ConvertToImage();
+            imageForLINE = imageForLINE.Scale(30, 30, wxIMAGE_QUALITY_HIGH);
+            bitmapForLINE = wxBitmap(imageForLINE);
+        }
+        // 加载箭头图标
+        wxBitmap bitmapForARROW;
+        if (!bitmapForARROW.LoadFile("resource/ARROW.png", wxBITMAP_TYPE_PNG)) {
+            wxLogError("Failed to load NOT gate icon.");
+        }
+        else {
+            wxImage imageForARROW = bitmapForARROW.ConvertToImage();
+            imageForARROW = imageForARROW.Scale(30, 30, wxIMAGE_QUALITY_HIGH);
+            bitmapForARROW = wxBitmap(imageForARROW);
+        }
+
+        // 加载 OR门图标
+        wxBitmap bitmapForORgate;
+        if (!bitmapForORgate.LoadFile("resource/OR gate.png", wxBITMAP_TYPE_PNG)) {
+            wxLogError("Failed to load OR gate icon.");
+        }
+        else {
+            wxImage imageForORgate = bitmapForORgate.ConvertToImage();
+            imageForORgate = imageForORgate.Scale(30, 30, wxIMAGE_QUALITY_HIGH);
+            bitmapForORgate = wxBitmap(imageForORgate);
+        }
+
         // 创建工具栏，用于快速访问功能
         wxToolBar* toolbar = CreateToolBar(wxTB_HORIZONTAL | wxTB_TEXT); // 创建水平工具栏
-        const int cId = wxNewId();
         toolbar->AddTool(wxID_NEW, "New", wxArtProvider::GetBitmap(wxART_NEW)); // 添加新建工具图标
         toolbar->AddTool(wxID_OPEN, "Open", wxArtProvider::GetBitmap(wxART_FILE_OPEN)); // 添加打开工具图标
         toolbar->AddTool(wxID_SAVE, "Save", wxArtProvider::GetBitmap(wxART_FILE_SAVE)); // 添加保存工具图标
-        toolbar->AddTool(cId, "Connect", wxArtProvider::GetBitmap(wxART_BUTTON)); // 添加保存工具图标
+        if (bitmapForAndgate.IsOk()) {
+            toolbar->AddTool(wxID_AND_GATE, "AND Gate", bitmapForAndgate);
+        }
+        if (bitmapForNOTgate.IsOk()) {
+            toolbar->AddTool(wxID_NOT_GATE, "NOT Gate", bitmapForNOTgate);
+        }
+        if (bitmapForORgate.IsOk()) {
+            toolbar->AddTool(wxID_OR_GATE, "OR Gate", bitmapForORgate);
+        }
+        if (bitmapForLINE.IsOk()) {
+            toolbar->AddTool(wxID_LINE, "CONNECT", bitmapForLINE);
+        }
+        if (bitmapForARROW.IsOk()) {
+            toolbar->AddTool(wxID_ARROW, "ARROW", bitmapForARROW);
+        }
+
+
 
         toolbar->Realize(); // 完成工具栏的创建
 
@@ -151,7 +220,7 @@ public:
         Bind(wxEVT_MENU, &MyFrame::OnAbout, this, wxID_ABOUT); // 绑定关于事件
         Bind(wxEVT_MENU, &MyFrame::OnNew, this, wxID_NEW); // 绑定新建事件
         Bind(wxEVT_MENU, &MyFrame::OnOpen, this, wxID_OPEN); // 绑定打开事件
-        //Bind(wxEVT_MENU, &MyFrame::OnSave, this, wxID_SAVE); // 绑定保存事件
+        Bind(wxEVT_MENU, &MyFrame::OnSave, this, wxID_SAVE); // 绑定保存事件
         Bind(wxEVT_MENU, &MyFrame::OnMaximize, this, wxID_MAXIMIZE); // 绑定最大化事件
         Bind(wxEVT_MENU, &MyFrame::OnMinimize, this, wxID_MINIMIZE); // 绑定最小化事件
         Bind(wxEVT_MENU, &MyFrame::OnCloseWindow, this, wxID_CLOSE); // 绑定关闭事件
@@ -161,7 +230,7 @@ public:
         Bind(wxEVT_MENU, &MyFrame::OnPaste, this, ID_PASTE); // 绑定粘贴事件
         Bind(wxEVT_MENU, &MyFrame::OnCut, this, ID_CUT); // 绑定剪切事件
         Bind(wxEVT_MENU, &MyFrame::OnShowTextBox, this, ID_SHOW_TEXT_BOX);//绑定help指导文档
-        Bind(wxEVT_MENU, &MyFrame::OnConnectButtonClick, this, cId); // 绑定lianxian事件
+        Bind(wxEVT_MENU, &MyFrame::OnConnectButtonClick, this, wxID_LINE); // 绑定lianxian事件
 
         // 绑定树控件选择事件
         treeCtrl->Bind(wxEVT_TREE_SEL_CHANGED, &MyFrame::ToolSelected, this);
@@ -205,32 +274,41 @@ public:
         if (openFileDialog.ShowModal() == wxID_OK) { // 显示对话框并检查用户是否选择了文件
             wxString path = openFileDialog.GetPath(); // 获取选定文件的路径
 
-            // 读取文件内容
+            // 打开并读取文件
             std::ifstream file(path.ToStdString());
             if (file.is_open()) {
-                json all_data;
-                file >> all_data; // 解析JSON文件内容
+                json final_json;
+                file >> final_json; // 读取JSON对象
+                file.close();
 
-                // 清空当前组件和连接
+                // 清空当前的组件和连接
                 drawPanel->components.clear();
                 drawPanel->connections.clear();
 
-                // 将JSON对象转换为组件
-                for (const auto& component_json : all_data["components"]) {
-                    Component::Tool type = static_cast<Component::Tool>(component_json["type"].get<int>());
-                    int x = component_json["x"].get<int>();
-                    int y = component_json["y"].get<int>();
-                    drawPanel->components.emplace_back(type, wxPoint(x, y));
+                // 读取组件数据
+                for (const auto& component_json : final_json["components"]) {
+                    Component::Tool tool = static_cast<Component::Tool>(component_json["type"].get<int>());
+                    wxPoint position(component_json["x"].get<int>(), component_json["y"].get<int>());
+                    Component component(tool, position);
+
+                    // 读取引脚数据
+                    for (const auto& pin_json : component_json["pins"]) {
+                        wxPoint start(pin_json["start"]["x"].get<int>(), pin_json["start"]["y"].get<int>());
+                        wxPoint end(pin_json["end"]["x"].get<int>(), pin_json["end"]["y"].get<int>());
+                        component.pins.push_back(std::make_pair(start, end));
+                    }
+
+                    drawPanel->components.push_back(component);
                 }
 
-                // 将JSON对象转换为连接
-                /*for (const auto& connection_json : all_data["connections"]) {
-                    int start = connection_json["start"].get<int>();
-                    int end = connection_json["end"].get<int>();
-                    drawPanel->connections.emplace_back(start, end);
-                }*/
+                // 读取连接数据
+                for (const auto& connection_json : final_json["connections"]) {
+                    wxPoint start(connection_json["start"]["x"].get<int>(), connection_json["start"]["y"].get<int>());
+                    wxPoint end(connection_json["end"]["x"].get<int>(), connection_json["end"]["y"].get<int>());
+                    drawPanel->connections.push_back(std::make_pair(start, end));
+                }
 
-                // 更新绘图面板
+                // 重新绘制面板
                 drawPanel->Refresh();
             }
             else {
@@ -249,49 +327,62 @@ public:
     }
 
     // 处理保存文件事件
-    //void OnSave(wxCommandEvent& event) {
-    //    // 创建文件对话框，允许用户选择保存文件的位置
-    //    wxFileDialog saveFileDialog(this, "Save File", "", "", "JSON files (*.json)|*.json", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-    //    if (saveFileDialog.ShowModal() == wxID_OK) { // 显示对话框并检查用户是否选择了文件
-    //        wxString path = saveFileDialog.GetPath(); // 获取选定文件的路径
+    void OnSave(wxCommandEvent& event) {
+        // 创建文件对话框，允许用户选择保存文件的位置
+        wxFileDialog saveFileDialog(this, "Save File", "", "", "JSON files (*.json)|*.json", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+        if (saveFileDialog.ShowModal() == wxID_OK) { // 显示对话框并检查用户是否选择了文件
+            wxString path = saveFileDialog.GetPath(); // 获取选定文件的路径
 
-    //        // 创建JSON对象
-    //        json all_component = json::array();
+            // 创建JSON对象
+            json all_component = json::array();
 
-    //        // 将组件转换为JSON对象
-    //        for (const auto& component : drawPanel->components) {
-    //            json component_json;
-    //            component_json["type"] = static_cast<int>(component.tool);
-    //            component_json["x"] = component.position.x;
-    //            component_json["y"] = component.position.y;
-    //            all_component.push_back(component_json);
-    //        }
+            // 将组件转换为JSON对象
+            for (const auto& component : drawPanel->components) {
+                json component_json;
+                component_json["type"] = static_cast<int>(component.tool);
+                component_json["x"] = component.position.x;
+                component_json["y"] = component.position.y;
 
-    //        // 将连接转换为JSON对象
-    //        json all_connections = json::array();
-    //        for (const auto& connection : drawPanel->connections) {
-    //            json connection_json;
-    //            connection_json["start"] = connection.first;
-    //            connection_json["end"] = connection.second;
-    //            all_connections.push_back(connection_json);
-    //        }
+                // 将引脚数据转换为JSON对象
+                json pins_json = json::array();
+                for (const auto& pin : component.pins) {
+                    json pin_json;
+                    pin_json["start"] = { {"x", pin.first.x}, {"y", pin.first.y} };
+                    pin_json["end"] = { {"x", pin.second.x}, {"y", pin.second.y} };
+                    pins_json.push_back(pin_json);
+                }
+                component_json["pins"] = pins_json;
 
-    //        // 创建最终的JSON对象
-    //        json final_json;
-    //        final_json["components"] = all_component;
-    //        final_json["connections"] = all_connections;
+                all_component.push_back(component_json);
+            }
 
-    //        // 将JSON对象写入文件
-    //        std::ofstream file(path.ToStdString());
-    //        if (file.is_open()) {
-    //            file << final_json.dump(4); // 以缩进4个空格的格式写入文件
-    //            file.close();
-    //        }
-    //        else {
-    //            wxLogError("Cannot save file '%s'.", path);
-    //        }
-    //    }
-    //}
+            // 将连接转换为JSON对象
+            json all_connections = json::array();
+            for (const auto& connection : drawPanel->connections) {
+                json connection_json;
+                connection_json["start"] = { {"x", connection.first.x}, {"y", connection.first.y} };
+                connection_json["end"] = { {"x", connection.second.x}, {"y", connection.second.y} };
+                all_connections.push_back(connection_json);
+            }
+
+
+
+            // 创建最终的JSON对象
+            json final_json;
+            final_json["components"] = all_component;
+            final_json["connections"] = all_connections;
+
+            // 将JSON对象写入文件
+            std::ofstream file(path.ToStdString());
+            if (file.is_open()) {
+                file << final_json.dump(4); // 以缩进4个空格的格式写入文件
+                file.close();
+            }
+            else {
+                wxLogError("Cannot save file '%s'.", path);
+            }
+        }
+    }
 
     // 最大化窗口
     void OnMaximize(wxCommandEvent& event) {

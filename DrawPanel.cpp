@@ -50,7 +50,6 @@ public:
         currentTool = tool; // 设置当前选择的工具
     }
 
-    //private:
     Component::Tool currentTool; // 当前工具
     std::vector<Component> components;  // 存储所有组件对象
     std::vector<std::pair<wxPoint, wxPoint>> connections; // 存储连接线的组件索引

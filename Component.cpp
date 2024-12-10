@@ -2,7 +2,9 @@
 #include <wx/toolbar.h>
 #include <wx/filedlg.h>
 #include <wx/image.h>
+#include <wx/region.h>   // 用于 `wxRegion` 类
 #include <wx/artprov.h>
+#include <wx/memory.h>   // 用于 `wxMemoryDC` 类
 #include <vector>
 #include <wx/dcbuffer.h>
 #include <wx/frame.h>       // 包含框架窗口相关功能
@@ -20,30 +22,21 @@ public:
 
     Tool tool;  // 组件的类型
     wxPoint position;  // 组件的位置
-    std::vector<std::pair<wxPoint, wxPoint>> inputs;  // 输入引脚（起点和终点）
-    std::vector<std::pair<wxPoint, wxPoint>> outputs; // 输出引脚（起点和终点）
+    std::vector<std::pair<wxPoint, wxPoint>> pins;  // 输入引脚（起点和终点）
 
     Component(Tool t, const wxPoint& pos)
         : tool(t), position(pos) {}
 
-    // 从 JSON 文件加载组件的引脚信息
     void LoadPinsFromJson(const std::string& filename) {
-        std::ifstream file(filename);
-        if (!file.is_open()) {
-            wxLogError("Cannot open the JSON file for %s", filename);
-            return;
-        }
-
         json componentJson;
-        file >> componentJson;
-        file.close();
+        LoadComponentFromJson(filename, componentJson);
 
         // 解析输入端口
         if (componentJson.contains("inputs")) {
             for (const auto& input : componentJson["inputs"]) {
                 wxPoint start(input["start"][0].get<int>(), input["start"][1].get<int>());
                 wxPoint end(input["end"][0].get<int>(), input["end"][1].get<int>());
-                inputs.push_back({ start, end });
+                pins.push_back({ start, end });
             }
         }
 
@@ -52,44 +45,64 @@ public:
             for (const auto& output : componentJson["outputs"]) {
                 wxPoint start(output["start"][0].get<int>(), output["start"][1].get<int>());
                 wxPoint end(output["end"][0].get<int>(), output["end"][1].get<int>());
-                outputs.push_back({ start, end });
+                pins.push_back({ end, start });
             }
         }
     }
 
+
     // 绘制组件本身
-    void Draw(wxDC& dc, const wxPoint& snapPoint, const wxPoint& mousePos) {
+    void Draw(wxDC& dc, const wxPoint& mousePos) {//mousePos是对齐后的
         // 根据工具类型选择对应的 JSON 文件
         std::string filename = GetComponentFileName(tool);
 
         // 绘制该组件
-        DrawComponentShape(dc, snapPoint);
+        DrawComponentShape(dc);
 
         // 绘制输入输出引脚
-        DrawPins(dc, snapPoint, mousePos);
+        DrawPins(dc, mousePos);
+    }
+
+    // 更新引脚位置的方法，传入偏移量
+    void UpdatePinPositions(const wxPoint& offset) {
+        for (auto& pin : pins) {
+            pin.first += offset;
+            pin.second += offset;
+        }
     }
 
     // 判断鼠标是否在组件区域内
-    bool IsMouseOverComponent(const wxPoint& mousePos) const {
-        int width = 50;  // 假设组件宽度为50像素
-        int height = 50; // 假设组件高度为50像素
-        return mousePos.x >= position.x && mousePos.x <= position.x + width &&
-            mousePos.y >= position.y && mousePos.y <= position.y + height;
+    bool IsMouseOverComponent(const wxPoint& mousePos) {//mousePos是对齐hou的
+        json componentJson;
+        LoadComponentFromJson("tools/" + GetComponentFileName(tool), componentJson);
+        
+        if (abs(position.x - mousePos.x) < 25 && abs(position.y - mousePos.y) < 25) {
+            return true;
+        }
+
+        return IsMouseOverPin(mousePos);
     }
+
+
+
     
     // 判断鼠标是否在某个引脚上
     bool IsMouseOverPin(const wxPoint& mousePos) const {
-        for (const auto& pin : inputs) {
-            if (IsMouseOverLine(pin.first + position, pin.second + position, mousePos)) {
-                return true;
-            }
-        }
-        for (const auto& pin : outputs) {
-            if (IsMouseOverLine(pin.first + position, pin.second + position, mousePos)) {
+        for (const auto& pin : pins) {
+            if (IsMouseOverLine(pin.first+position, pin.second+position, mousePos)) {
                 return true;
             }
         }
         return false;
+    }
+
+    wxPoint GetPinPosition(const wxPoint& mousePos) {
+        for (const auto& pin : pins) {
+            if (IsMouseOverLine(pin.first + position, pin.second + position, mousePos)) {
+                return pin.first + position;
+            }
+        }
+        return wxPoint(-1,-1);
     }
 
     // 判断鼠标是否在引脚的线段上
@@ -115,37 +128,31 @@ public:
         }
     }
 
-    // 获取指定引脚的起始位置
-    wxPoint GetPinPosition(size_t pinIndex, bool isInput) const {
-        if (isInput && pinIndex < inputs.size()) {
-            return inputs[pinIndex].first + position;  // 输入引脚的起始位置
-        }
-        if (!isInput && pinIndex < outputs.size()) {
-            return outputs[pinIndex].first + position;  // 输出引脚的起始位置
-        }
-        return wxPoint(-1, -1);  // 如果引脚索引无效，返回一个无效的点
-    }
-
 private:
-
-    // 绘制该组件的形状（例如线条、圆形等）
-    void DrawComponentShape(wxDC& dc, const wxPoint& snapPoint) {
-        std::ifstream file("tools/" + GetComponentFileName(tool));
+    
+    void LoadComponentFromJson(const std::string& filename, json& componentJson) const {
+        std::ifstream file(filename);
         if (!file.is_open()) {
-            wxLogError("Cannot open the JSON file for %s", GetComponentFileName(tool));
+            wxLogError("Cannot open the JSON file for %s", filename);
             return;
         }
-
-        json componentJson;
         file >> componentJson;
         file.close();
+    }
+
+    // 绘制该组件的形状（例如线条、圆形等）
+    void DrawComponentShape(wxDC& dc) {
+        json componentJson;
+        LoadComponentFromJson("tools/" + GetComponentFileName(tool), componentJson);
 
         // 绘制直线部分
         dc.SetPen(wxPen(*wxBLACK, 4));
-        for (const auto& line : componentJson["lines"]) {
-            wxPoint start(line["start"][0].get<int>(), line["start"][1].get<int>());
-            wxPoint end(line["end"][0].get<int>(), line["end"][1].get<int>());
-            dc.DrawLine(snapPoint.x + start.x, snapPoint.y + start.y, snapPoint.x + end.x, snapPoint.y + end.y);
+        if (componentJson.contains("lines")) {
+            for (const auto& line : componentJson["lines"]) {
+                wxPoint start(line["start"][0].get<int>(), line["start"][1].get<int>());
+                wxPoint end(line["end"][0].get<int>(), line["end"][1].get<int>());
+                dc.DrawLine(position.x + start.x, position.y + start.y, position.x + end.x, position.y + end.y);
+            }
         }
 
         // 绘制曲线部分（如有）
@@ -153,7 +160,7 @@ private:
             for (const auto& spline : componentJson["splines"]) {
                 std::vector<wxPoint> points;
                 for (const auto& point : spline["points"]) {
-                    points.push_back(wxPoint(snapPoint.x + point[0].get<int>(), snapPoint.y + point[1].get<int>()));
+                    points.push_back(wxPoint(position.x + point[0].get<int>(), position.y + point[1].get<int>()));
                 }
                 dc.DrawSpline(points.size(), points.data());
             }
@@ -165,37 +172,24 @@ private:
             int cx = circle["center"][0].get<int>();
             int cy = circle["center"][1].get<int>();
             int radius = circle["radius"].get<int>();
-            dc.DrawCircle(snapPoint.x + cx, snapPoint.y + cy, radius);
+            dc.DrawCircle(position.x + cx, position.y + cy, radius);
         }
     }
 
     // 绘制输入和输出引脚
-    void DrawPins(wxDC& dc, const wxPoint& snapPoint, const wxPoint& mousePos) {
-        // 绘制输入端口
+    void DrawPins(wxDC& dc, const wxPoint& mousePos) {
+        // 绘制输入输出端口
         dc.SetPen(wxPen(*wxBLACK, 4));
-        for (const auto& input : inputs) {
-            bool isMouseOver = IsMouseOverLine(input.first + snapPoint, input.second + snapPoint, mousePos);
+        for (const auto& pin : pins) {
+            bool isMouseOver = IsMouseOverLine(pin.first + position, pin.second + position, mousePos);
             if (isMouseOver) {
                 dc.SetPen(wxPen(wxColour(255, 0, 0), 7));  // 红色高亮
             }
             else {
                 dc.SetPen(wxPen(*wxBLACK, 4));  // 默认黑色
             }
-            dc.DrawLine(snapPoint.x + input.first.x, snapPoint.y + input.first.y,
-                snapPoint.x + input.second.x, snapPoint.y + input.second.y);
-        }
-
-        // 绘制输出端口
-        for (const auto& output : outputs) {
-            bool isMouseOver = IsMouseOverLine(output.first + snapPoint, output.second + snapPoint, mousePos);
-            if (isMouseOver) {
-                dc.SetPen(wxPen(wxColour(255, 0, 0), 7));  // 红色高亮
-            }
-            else {
-                dc.SetPen(wxPen(*wxBLACK, 4));  // 默认黑色
-            }
-            dc.DrawLine(snapPoint.x + output.first.x, snapPoint.y + output.first.y,
-                snapPoint.x + output.second.x, snapPoint.y + output.second.y);
+            dc.DrawLine(position.x + pin.first.x, position.y + pin.first.y,
+                position.x + pin.second.x, position.y + pin.second.y);
         }
     }
 

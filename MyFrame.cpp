@@ -106,9 +106,12 @@ public:
 
         // 创建工具栏，用于快速访问功能
         wxToolBar* toolbar = CreateToolBar(wxTB_HORIZONTAL | wxTB_TEXT); // 创建水平工具栏
+        const int cId = wxNewId();
         toolbar->AddTool(wxID_NEW, "New", wxArtProvider::GetBitmap(wxART_NEW)); // 添加新建工具图标
         toolbar->AddTool(wxID_OPEN, "Open", wxArtProvider::GetBitmap(wxART_FILE_OPEN)); // 添加打开工具图标
         toolbar->AddTool(wxID_SAVE, "Save", wxArtProvider::GetBitmap(wxART_FILE_SAVE)); // 添加保存工具图标
+        toolbar->AddTool(cId, "Connect", wxArtProvider::GetBitmap(wxART_BUTTON)); // 添加保存工具图标
+
         toolbar->Realize(); // 完成工具栏的创建
 
         // 创建树控件，用于管理不同的电子元件
@@ -148,7 +151,7 @@ public:
         Bind(wxEVT_MENU, &MyFrame::OnAbout, this, wxID_ABOUT); // 绑定关于事件
         Bind(wxEVT_MENU, &MyFrame::OnNew, this, wxID_NEW); // 绑定新建事件
         Bind(wxEVT_MENU, &MyFrame::OnOpen, this, wxID_OPEN); // 绑定打开事件
-        Bind(wxEVT_MENU, &MyFrame::OnSave, this, wxID_SAVE); // 绑定保存事件
+        //Bind(wxEVT_MENU, &MyFrame::OnSave, this, wxID_SAVE); // 绑定保存事件
         Bind(wxEVT_MENU, &MyFrame::OnMaximize, this, wxID_MAXIMIZE); // 绑定最大化事件
         Bind(wxEVT_MENU, &MyFrame::OnMinimize, this, wxID_MINIMIZE); // 绑定最小化事件
         Bind(wxEVT_MENU, &MyFrame::OnCloseWindow, this, wxID_CLOSE); // 绑定关闭事件
@@ -158,6 +161,8 @@ public:
         Bind(wxEVT_MENU, &MyFrame::OnPaste, this, ID_PASTE); // 绑定粘贴事件
         Bind(wxEVT_MENU, &MyFrame::OnCut, this, ID_CUT); // 绑定剪切事件
         Bind(wxEVT_MENU, &MyFrame::OnShowTextBox, this, ID_SHOW_TEXT_BOX);//绑定help指导文档
+        Bind(wxEVT_MENU, &MyFrame::OnConnectButtonClick, this, cId); // 绑定lianxian事件
+
         // 绑定树控件选择事件
         treeCtrl->Bind(wxEVT_TREE_SEL_CHANGED, &MyFrame::ToolSelected, this);
     }
@@ -169,6 +174,11 @@ public:
     // 声明绘图面板指针，用于操作绘制的组件
     DrawPanel* drawPanel;
     wxString path;//文件路径
+
+    // 进入连线模式
+    void OnConnectButtonClick(wxCommandEvent& event) {
+        drawPanel->connecting=true;  // 设置进入连线模式
+    }
 
     // 处理退出事件
     void OnExit(wxCommandEvent& event) {
@@ -214,11 +224,11 @@ public:
                 }
 
                 // 将JSON对象转换为连接
-                for (const auto& connection_json : all_data["connections"]) {
+                /*for (const auto& connection_json : all_data["connections"]) {
                     int start = connection_json["start"].get<int>();
                     int end = connection_json["end"].get<int>();
                     drawPanel->connections.emplace_back(start, end);
-                }
+                }*/
 
                 // 更新绘图面板
                 drawPanel->Refresh();
@@ -239,49 +249,49 @@ public:
     }
 
     // 处理保存文件事件
-    void OnSave(wxCommandEvent& event) {
-        // 创建文件对话框，允许用户选择保存文件的位置
-        wxFileDialog saveFileDialog(this, "Save File", "", "", "JSON files (*.json)|*.json", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-        if (saveFileDialog.ShowModal() == wxID_OK) { // 显示对话框并检查用户是否选择了文件
-            wxString path = saveFileDialog.GetPath(); // 获取选定文件的路径
+    //void OnSave(wxCommandEvent& event) {
+    //    // 创建文件对话框，允许用户选择保存文件的位置
+    //    wxFileDialog saveFileDialog(this, "Save File", "", "", "JSON files (*.json)|*.json", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+    //    if (saveFileDialog.ShowModal() == wxID_OK) { // 显示对话框并检查用户是否选择了文件
+    //        wxString path = saveFileDialog.GetPath(); // 获取选定文件的路径
 
-            // 创建JSON对象
-            json all_component = json::array();
+    //        // 创建JSON对象
+    //        json all_component = json::array();
 
-            // 将组件转换为JSON对象
-            for (const auto& component : drawPanel->components) {
-                json component_json;
-                component_json["type"] = static_cast<int>(component.tool);
-                component_json["x"] = component.position.x;
-                component_json["y"] = component.position.y;
-                all_component.push_back(component_json);
-            }
+    //        // 将组件转换为JSON对象
+    //        for (const auto& component : drawPanel->components) {
+    //            json component_json;
+    //            component_json["type"] = static_cast<int>(component.tool);
+    //            component_json["x"] = component.position.x;
+    //            component_json["y"] = component.position.y;
+    //            all_component.push_back(component_json);
+    //        }
 
-            // 将连接转换为JSON对象
-            json all_connections = json::array();
-            for (const auto& connection : drawPanel->connections) {
-                json connection_json;
-                connection_json["start"] = connection.first;
-                connection_json["end"] = connection.second;
-                all_connections.push_back(connection_json);
-            }
+    //        // 将连接转换为JSON对象
+    //        json all_connections = json::array();
+    //        for (const auto& connection : drawPanel->connections) {
+    //            json connection_json;
+    //            connection_json["start"] = connection.first;
+    //            connection_json["end"] = connection.second;
+    //            all_connections.push_back(connection_json);
+    //        }
 
-            // 创建最终的JSON对象
-            json final_json;
-            final_json["components"] = all_component;
-            final_json["connections"] = all_connections;
+    //        // 创建最终的JSON对象
+    //        json final_json;
+    //        final_json["components"] = all_component;
+    //        final_json["connections"] = all_connections;
 
-            // 将JSON对象写入文件
-            std::ofstream file(path.ToStdString());
-            if (file.is_open()) {
-                file << final_json.dump(4); // 以缩进4个空格的格式写入文件
-                file.close();
-            }
-            else {
-                wxLogError("Cannot save file '%s'.", path);
-            }
-        }
-    }
+    //        // 将JSON对象写入文件
+    //        std::ofstream file(path.ToStdString());
+    //        if (file.is_open()) {
+    //            file << final_json.dump(4); // 以缩进4个空格的格式写入文件
+    //            file.close();
+    //        }
+    //        else {
+    //            wxLogError("Cannot save file '%s'.", path);
+    //        }
+    //    }
+    //}
 
     // 最大化窗口
     void OnMaximize(wxCommandEvent& event) {

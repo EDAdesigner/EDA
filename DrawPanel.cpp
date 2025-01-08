@@ -22,6 +22,19 @@ public:
     wxTimer* moveTimer;
     wxPoint connectionStartPosition;
     double scaleFactor = 0.5;//缩小比例，在每个映射时除以该因子
+    Component::Tool currentTool; // 当前工具
+    std::vector<Component> components;  // 存储所有组件对象
+    std::vector<std::pair<wxPoint, wxPoint>> connections; // 存储连接线的组件索引
+    bool dragging; // 标记是否正在拖动组件
+    bool connecting;
+    int draggedComponentIndex; // 被拖动的组件索引
+
+    wxPoint dragStartPos;//存储拖动开始位置（每次拖动后会更新），用于更新连线
+
+    wxPoint componentOffset; // 新增：记录元件相对于鼠标的偏移
+    //wxPoint startPoint; // 连线起始点
+    wxPoint m_mousePos;// 存储鼠标的网格位置
+
 
     DrawPanel(wxWindow* parent)
         : wxPanel(parent), currentTool(Component::Tool::NONE), dragging(false), moveTimer(new wxTimer(this)), connecting(false), connectionStartPosition(wxPoint(-1,-1)) {
@@ -50,18 +63,6 @@ public:
         currentTool = tool; // 设置当前选择的工具
     }
 
-    Component::Tool currentTool; // 当前工具
-    std::vector<Component> components;  // 存储所有组件对象
-    std::vector<std::pair<wxPoint, wxPoint>> connections; // 存储连接线的组件索引
-    bool dragging; // 标记是否正在拖动组件
-    bool connecting;
-    int draggedComponentIndex; // 被拖动的组件索引
-    wxPoint dragStartPos;
-    wxPoint componentOffset; // 新增：记录元件相对于鼠标的偏移
-    //wxPoint startPoint; // 连线起始点
-    wxPoint m_mousePos;// 存储鼠标的网格位置
-
-
 
     void OnPaint(wxPaintEvent& event) {
         wxBufferedPaintDC dc(this);
@@ -89,7 +90,7 @@ public:
             auto& component = components[i];
             component.Draw(dc, m_mousePos);  // 使用 Component 类的 Draw 方法来绘制
         }
-        DrawConnections(dc);  // 绘制连接线
+            DrawConnections(dc);  // 绘制连接线
     }
 
     //绘制网格点
@@ -174,7 +175,7 @@ public:
                 dragging = true;
                 draggedComponentIndex = i;
                 dragStartPos = pos;
-                componentOffset = pos - components[i].position;  // 计算鼠标与组件位置的偏移量
+                componentOffset = pos - components[i].position;  // 计算鼠标与组件位置的偏移量，注：组件位置认为是中心位置，而鼠标位置不一定是组件位置（是范围内任意一点）
                 CaptureMouse();
                 return;
             }
@@ -209,13 +210,16 @@ public:
     void OnMouseMove(wxMouseEvent& event) {
         if (dragging) {
             wxPoint pos = GetSnapPoint(event.GetPosition());
-            wxPoint newComponentPos = pos - componentOffset;
+            wxPoint newComponentPos = pos - componentOffset;//鼠标位置与元件位置（中心）相差一个Offset偏移量
+            wxPoint prepos = components[draggedComponentIndex].position;
+            // 更新所有与该组件连接的线条
+            UpdateConnections(draggedComponentIndex, pos - dragStartPos, prepos);
+
+            dragStartPos = pos;
 
             // 更新组件的新位置
             components[draggedComponentIndex].position = newComponentPos;
 
-            // 更新所有与该组件连接的线条
-            UpdateConnections(draggedComponentIndex, pos - dragStartPos);
 
             // 刷新绘制
             Refresh();
@@ -237,11 +241,11 @@ public:
         return wxPoint(gridX, gridY);  // 返回对齐后的点
     }
 
-    void UpdateConnections(int draggedComponentIndex, const wxPoint& offset) {
-        // 遍历所有的连接
+    void UpdateConnections(int draggedComponentIndex, const wxPoint& offset,wxPoint prepos) {
+        // 遍历当前元件存在的所有的连接
         for (auto& connection : connections) {
             for (const auto& pin : components[draggedComponentIndex].pins) {
-                wxPoint currentPinPosition = pin.first + components[draggedComponentIndex].position;
+                wxPoint currentPinPosition = pin.first + prepos;
                 if (connection.first == currentPinPosition) {
                     connection.first += offset;
                 }

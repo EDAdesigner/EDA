@@ -22,7 +22,8 @@ public:
 
     Tool tool;  // 组件的类型
     wxPoint position;  // 组件的位置
-    std::vector<std::pair<wxPoint, wxPoint>> pins;  // 输入引脚（起点和终点）
+    std::vector<std::pair<wxPoint, wxPoint>> pins;  // 输入引脚（起点和终点），注：pins中存储的位置均是json文件中给的原始位置数据（相对位置），
+                                                    // 也就是说，在画板中的真实位置需要元件的位置+该位置
 
     Component(Tool t, const wxPoint& pos)
         : tool(t), position(pos) {}

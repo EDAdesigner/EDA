@@ -543,6 +543,13 @@ public:
 
         std::vector<bool> output = { false };
         int i = 0;
+		bool j = false;
+		bool k = false;
+		bool m = false;
+		bool n = false;
+		bool o = false;
+		bool p = false;
+
 
         while (!stack2.empty()) {
             Component current = stack2.top();
@@ -559,37 +566,37 @@ public:
                     break;
                 case Component::Tool::OR_GATE:
 					// 或门的输出是输入的或
-					bool k = output[i] || output[i-1];
+					k = output[i] || output[i-1];
                     output[i - 1] = k;
                     i--;
                     break;
                 case Component::Tool::AND_GATE:
 					// 与门de输出是输入的与
-					bool j = output[i] && output[i - 1];
+					j = output[i] && output[i - 1];
 					output[i - 1] = j;
 					i--;
 					break;
 			    case Component::Tool::NAND_GATE:
 					// 与非门的输出是输入的与非
-					bool m = !(output[i] && output[i - 1]);
+					m = !(output[i] && output[i - 1]);
 					output[i - 1] = m;
 					i--;
 				    break;
 			    case Component::Tool::NOR_GATE:
 					// 或非门的输出是输入的或非
-					bool n = !(output[i] || output[i - 1]);
+					n = !(output[i] || output[i - 1]);
 					output[i - 1] = n;
 					i--;
 				    break;
 			    case Component::Tool::XOR_GATE:
 					// 异或门的输出是输入的异或
-					bool o = output[i] ^ output[i - 1];
+					o = output[i] ^ output[i - 1];
 					output[i - 1] = o;
 					i--;
 				    break;
 			    case Component::Tool::XNOR_GATE:
 					// 与非门的输出是输入的与非
-					bool p = !(output[i] ^ output[i - 1]);
+					p = !(output[i] ^ output[i - 1]);
 					output[i - 1] = p;
 					i--;
 				    break;

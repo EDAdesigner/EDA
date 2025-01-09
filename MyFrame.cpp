@@ -115,68 +115,76 @@ public:
         SetSize(800, 600); // 设置窗口的初始大小
         Show(true); // 显示窗口
 
-        // 创建AND门图标
+        // 初始化图像处理器
         wxInitAllImageHandlers();
+
+        // 加载 AND 门图标
         wxBitmap bitmapForAndgate;
         if (!bitmapForAndgate.LoadFile("resource/AND gate.png", wxBITMAP_TYPE_PNG)) {
             wxLogError("Failed to load AND gate icon.");
         }
         else {
             wxImage imageForAnd = bitmapForAndgate.ConvertToImage();
-            imageForAnd = imageForAnd.Scale(30, 30, wxIMAGE_QUALITY_HIGH);
+            imageForAnd = imageForAnd.Scale(30, 30, wxIMAGE_QUALITY_HIGH); // 缩放图标到 30x30
             bitmapForAndgate = wxBitmap(imageForAnd);
         }
-        // 加载 NOT 门 图标
+
+        // 加载 NOT 门图标
         wxBitmap bitmapForNOTgate;
         if (!bitmapForNOTgate.LoadFile("resource/NOT gate.png", wxBITMAP_TYPE_PNG)) {
             wxLogError("Failed to load NOT gate icon.");
         }
         else {
             wxImage imageForNOTgate = bitmapForNOTgate.ConvertToImage();
-            imageForNOTgate = imageForNOTgate.Scale(30, 30, wxIMAGE_QUALITY_HIGH);
+            imageForNOTgate = imageForNOTgate.Scale(30, 30, wxIMAGE_QUALITY_HIGH); // 缩放图标到 30x30
             bitmapForNOTgate = wxBitmap(imageForNOTgate);
         }
 
         // 加载线条图标
         wxBitmap bitmapForLINE;
         if (!bitmapForLINE.LoadFile("resource/LINE.png", wxBITMAP_TYPE_PNG)) {
-            wxLogError("Failed to load NOT gate icon.");
+            wxLogError("Failed to load LINE icon.");
         }
         else {
             wxImage imageForLINE = bitmapForLINE.ConvertToImage();
-            imageForLINE = imageForLINE.Scale(30, 30, wxIMAGE_QUALITY_HIGH);
+            imageForLINE = imageForLINE.Scale(30, 30, wxIMAGE_QUALITY_HIGH); // 缩放图标到 30x30
             bitmapForLINE = wxBitmap(imageForLINE);
         }
+
         // 加载箭头图标
         wxBitmap bitmapForARROW;
         if (!bitmapForARROW.LoadFile("resource/ARROW.png", wxBITMAP_TYPE_PNG)) {
-            wxLogError("Failed to load NOT gate icon.");
+            wxLogError("Failed to load ARROW icon.");
         }
         else {
             wxImage imageForARROW = bitmapForARROW.ConvertToImage();
-            imageForARROW = imageForARROW.Scale(30, 30, wxIMAGE_QUALITY_HIGH);
+            imageForARROW = imageForARROW.Scale(30, 30, wxIMAGE_QUALITY_HIGH); // 缩放图标到 30x30
             bitmapForARROW = wxBitmap(imageForARROW);
         }
 
-        // 加载 OR门图标
+        // 加载 OR 门图标
         wxBitmap bitmapForORgate;
         if (!bitmapForORgate.LoadFile("resource/OR gate.png", wxBITMAP_TYPE_PNG)) {
             wxLogError("Failed to load OR gate icon.");
         }
         else {
             wxImage imageForORgate = bitmapForORgate.ConvertToImage();
-            imageForORgate = imageForORgate.Scale(30, 30, wxIMAGE_QUALITY_HIGH);
+            imageForORgate = imageForORgate.Scale(30, 30, wxIMAGE_QUALITY_HIGH); // 缩放图标到 30x30
             bitmapForORgate = wxBitmap(imageForORgate);
         }
 
-        // 创建工具栏，用于快速访问功能
+        // 创建工具栏
         wxToolBar* toolbar = CreateToolBar(wxTB_HORIZONTAL | wxTB_TEXT); // 创建水平工具栏
         toolbar->SetBackgroundColour(*wxWHITE); // 设置工具栏的背景颜色为白色
+        toolbar->SetToolBitmapSize(wxSize(30, 30)); // 设置工具栏图标尺寸为 30x30
+
+        // 添加默认工具图标
         toolbar->AddTool(wxID_NEW, "New", wxArtProvider::GetBitmap(wxART_NEW)); // 添加新建工具图标
         toolbar->AddTool(wxID_OPEN, "Open", wxArtProvider::GetBitmap(wxART_FILE_OPEN)); // 添加打开工具图标
         toolbar->AddTool(wxID_SAVE, "Save", wxArtProvider::GetBitmap(wxART_FILE_SAVE)); // 添加保存工具图标
         toolbar->AddTool(wxID_NEW_BUTTON, "New Button", wxArtProvider::GetBitmap(wxART_HELP)); // 使用帮助图标作为示例
 
+        // 添加自定义工具图标
         if (bitmapForAndgate.IsOk()) {
             toolbar->AddTool(wxID_AND_GATE, "AND Gate", bitmapForAndgate);
         }
@@ -193,9 +201,8 @@ public:
             toolbar->AddTool(wxID_ARROW, "ARROW", bitmapForARROW);
         }
 
-
-
-        toolbar->Realize(); // 完成工具栏的创建
+        // 完成工具栏的创建
+        toolbar->Realize();
 
         // 加载图标并放大到 32x32
         wxInitAllImageHandlers();
@@ -264,6 +271,28 @@ public:
             wxLogError("Failed to load XNOR gate icon.");
         }
 
+        // 加载 BATTERY 图标
+        wxBitmap batteryIcon;
+        if (!batteryIcon.LoadFile("resource/battery.png", wxBITMAP_TYPE_PNG)) {
+            wxLogError("Failed to load BATTERY icon.");
+        }
+        else {
+            wxImage image = batteryIcon.ConvertToImage();
+            image = image.Scale(32, 32, wxIMAGE_QUALITY_HIGH); // 放大到 32x32
+            batteryIcon = wxBitmap(image);
+        }
+
+        // 加载 BULB 图标
+        wxBitmap bulbIcon;
+        if (!bulbIcon.LoadFile("resource/bulb.png", wxBITMAP_TYPE_PNG)) {
+            wxLogError("Failed to load BULB icon.");
+        }
+        else {
+            wxImage image = bulbIcon.ConvertToImage();
+            image = image.Scale(32, 32, wxIMAGE_QUALITY_HIGH); // 放大到 32x32
+            bulbIcon = wxBitmap(image);
+        }
+
 
 
         // 创建树控件
@@ -271,13 +300,16 @@ public:
 
         // 创建图像列表并添加图标
         wxImageList* imageList = new wxImageList(32, 32); // 图标大小为 32x32
-        if (!imageList->Add(andGateIcon)) wxLogError("Failed to add AND gate icon to image list.");
-        if (!imageList->Add(notGateIcon)) wxLogError("Failed to add NOT gate icon to image list.");
-        if (!imageList->Add(orGateIcon)) wxLogError("Failed to add OR gate icon to image list.");
+        if (!imageList->Add(andGateIcon)) ;;
+        if (!imageList->Add(andGateIcon)) wxLogError("Failed to add AND gate icon to image list.");;
+       if (!imageList->Add(notGateIcon)) wxLogError("Failed to add NOT gate icon to image list.");
+       if (!imageList->Add(orGateIcon)) wxLogError("Failed to add OR gate icon to image list.");
         if (!imageList->Add(nandGateIcon)) wxLogError("Failed to add NAND gate icon to image list.");
         if (!imageList->Add(norGateIcon)) wxLogError("Failed to add NOR gate icon to image list.");
         if (!imageList->Add(xorGateIcon)) wxLogError("Failed to add XOR gate icon to image list.");
         if (!imageList->Add(xnorGateIcon)) wxLogError("Failed to add XNOR gate icon to image list.");
+        if (!imageList->Add(batteryIcon)) wxLogError("Failed to add BATTERY icon to image list."); // 添加 BATTERY 图标
+       if (!imageList->Add(bulbIcon)) wxLogError("Failed to add BULB icon to image list.");       // 添加 BULB 图标
 
         // 将图像列表设置到树控件
         treeCtrl->AssignImageList(imageList);
@@ -293,6 +325,8 @@ public:
         treeCtrl->AppendItem(rootId, "NOR Gate", 4);  // 4 对应 NOR Gate 图标
         treeCtrl->AppendItem(rootId, "XOR Gate", 5);  // 5 对应 XOR Gate 图标
         treeCtrl->AppendItem(rootId, "XNOR Gate", 6); // 6 对应 XNOR Gate 图标
+        treeCtrl->AppendItem(rootId, "BATTERY", 7);   // 7 对应 BATTERY 图标
+        treeCtrl->AppendItem(rootId, "BULB", 8);      // 8 对应 BULB 图标
 
         // 展开根节点
         treeCtrl->Expand(rootId);
@@ -809,6 +843,12 @@ public:
         }
         else if (nodeName == "XNOR Gate") {
             drawPanel->SetCurrentTool(Component::Tool::XNOR_GATE);
+        }
+        else if (nodeName == "BATTERY") {
+            drawPanel->SetCurrentTool(Component::Tool::BATTERY); // 设置当前工具为 BATTERY
+        }
+        else if (nodeName == "BULB") {
+            drawPanel->SetCurrentTool(Component::Tool::BULB); // 设置当前工具为 BULB
         }
     }
 

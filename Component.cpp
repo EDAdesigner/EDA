@@ -130,6 +130,9 @@ void Draw(wxDC& dc, const wxPoint& mousePos) {
         case Tool::NOR_GATE: return "NOR_GATE.json";
         case Tool::XOR_GATE: return "XOR_GATE.json";
         case Tool::XNOR_GATE: return "XNOR_GATE.json";
+        case Tool::BATTERY: return "BATTERY.json";  // 添加 BATTERY 的 JSON 文件名
+        case Tool::BULB: return "BULB.json";        // 添加 BULB 的 JSON 文件名
+
         default: return "";
         }
     }

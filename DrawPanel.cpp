@@ -24,6 +24,8 @@ public:
     double scaleFactor = 0.5;//缩小比例，在每个映射时除以该因子
     Component::Tool currentTool; // 当前工具
     std::vector<Component> components;  // 存储所有组件对象
+    std::vector<int> selectedComponents; // 存储选中的组件索引
+    std::vector<Component> copiedComponents; // 存储复制的组件对象
     std::vector<std::pair<wxPoint, wxPoint>> connections; // 存储连接线的组件索引
     bool dragging; // 标记是否正在拖动组件
     bool connecting;
@@ -63,14 +65,13 @@ public:
         currentTool = tool; // 设置当前选择的工具
     }
 
-
     void OnPaint(wxPaintEvent& event) {
         wxBufferedPaintDC dc(this);
         PrepareDC(dc);
         dc.SetBackground(*wxWHITE_BRUSH);
         dc.Clear();
         dc.SetUserScale(scaleFactor, scaleFactor);
-     
+
         // 绘制网格点
         DrawGrid(dc);
 
@@ -82,15 +83,29 @@ public:
             dc.SetBrush(wxBrush(wxColour(0, 0, 255), wxBRUSHSTYLE_TRANSPARENT));  // 设置透明填充
             dc.DrawCircle(m_mousePos, 3);  // 绘制半径为10的圆圈
         }
+        // 获取绘图区域的大小
+        wxSize size = GetSize();
+
+        // 设置边框颜色和宽度
+        dc.SetPen(wxPen(*wxBLACK, 2));  // 黑色边框，宽度为2像素
+
+        // 绘制矩形边框
+        // 注意：边框的位置和大小需要根据缩放因子调整
+        int borderWidth = 2;  // 边框宽度
+        int scaledWidth = size.x / scaleFactor;
+        int scaledHeight = size.y / scaleFactor;
+
+        // 绘制边框
+        dc.DrawRectangle(0, 0, scaledWidth, scaledHeight);
     }
 
 
     void Render(wxDC& dc) {
         for (size_t i = 0; i < components.size(); ++i) {
             auto& component = components[i];
-            component.Draw(dc, m_mousePos);  // 使用 Component 类的 Draw 方法来绘制
+            component.Draw(dc, m_mousePos);  // 绘制组件
         }
-            DrawConnections(dc);  // 绘制连接线
+        DrawConnections(dc);  // 绘制连接线
     }
 
     //绘制网格点
@@ -300,6 +315,60 @@ public:
     void OnSize(wxSizeEvent& event) {
         Refresh(); // 面板大小改变时刷新绘图
         event.Skip(); // 继续处理其他事件
+    }
+
+    // 全选所有组件
+    void SelectAll() {
+        for (auto& component : components) {
+            component.isSelected = true;  // 标记所有组件为选中状态
+        }
+        Refresh();  // 刷新面板以重新绘制
+    }
+
+
+    // 删除选中的组件
+    void CutSelected() {
+        // 使用 erase-remove 惯用法删除选中的组件
+        components.erase(
+            std::remove_if(
+                components.begin(),
+                components.end(),
+                [](const Component& component) {
+                    return component.isSelected;  // 删除 isSelected 为 true 的组件
+                }
+            ),
+            components.end()
+        );
+        Refresh();  // 刷新面板以重新绘制
+    }
+
+    // 复制选中的组件
+    void CopySelected() {
+        copiedComponents.clear();  // 清空之前的复制内容
+        for (const auto& component : components) {
+            if (component.isSelected) {
+                copiedComponents.push_back(component);  // 复制选中的组件
+            }
+        }
+    }
+
+    // 粘贴复制的组件
+    void PasteCopied() {
+        if (copiedComponents.empty()) {
+            return;  // 如果没有复制的组件，直接返回
+        }
+
+        // 定义偏移量，使粘贴的组件显示在原始组件的旁边
+        const wxPoint offset(40, 40);  // 偏移量为 (40, 40)
+
+        for (const auto& copiedComponent : copiedComponents) {
+            Component newComponent = copiedComponent;  // 复制组件
+            newComponent.position += offset;  // 偏移组件位置
+            newComponent.isSelected = false;  // 取消选中状态
+            components.push_back(newComponent);  // 添加到组件列表
+        }
+
+        Refresh();  // 刷新面板以重新绘制
     }
 
 };

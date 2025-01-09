@@ -24,28 +24,36 @@ public:
     MyFrame()
         : wxFrame(nullptr, wxID_ANY, "EDA Example") {
 
-        // 创建主面板，作为应用程序的基本界面
         wxPanel* panel = new wxPanel(this);
-        panel->SetBackgroundColour(*wxLIGHT_GREY); // 设置主面板的背景颜色为浅灰色
+        panel->SetBackgroundColour(*wxWHITE); // 设置主面板的背景颜色为白色
 
         // 创建水平布局管理器，用于管理子面板和绘图面板的布局
         wxBoxSizer* hbox = new wxBoxSizer(wxHORIZONTAL);
 
         // 创建子面板，作为工具栏和其他控件的容器
         wxPanel* subPanel = new wxPanel(panel, wxID_ANY);
-        subPanel->SetBackgroundColour(*wxLIGHT_GREY); // 设置子面板的背景颜色为浅灰色
-        hbox->Add(subPanel, 2, wxEXPAND | wxALL, 10); // 将子面板添加到布局中，比例为2，允许扩展，并添加边距
+        subPanel->SetBackgroundColour(*wxWHITE); // 设置子面板的背景颜色为白色
 
-        // 创建绘图面板，用于显示和绘制电子元件
+        // 绑定子面板的绘制事件
+        subPanel->Bind(wxEVT_PAINT, &MyFrame::OnSubPanelPaint, this);
+
+        // 设置子面板的初始大小
+        subPanel->SetMinSize(wxSize(200, 400)); // 宽度 200，高度 400
+
+        // 设置子面板的比例为1
+        hbox->Add(subPanel, 1, wxEXPAND | wxALL, 10);
+
+        // 创建绘图面板
         drawPanel = new DrawPanel(panel);
-        hbox->Add(drawPanel, 8, wxEXPAND | wxALL, 10); // 将绘图面板添加到布局中，比例为1，允许扩展，并添加边距
+
+        // 设置绘图面板的初始大小
+        drawPanel->SetMinSize(wxSize(600, 800)); // 宽度 600，高度 800
+
+        // 设置绘图面板的比例为3
+        hbox->Add(drawPanel, 3, wxEXPAND | wxALL, 10);
 
         // 设置主面板的布局管理器为hbox
         panel->SetSizer(hbox);
-
-        // 创建状态栏，显示应用程序状态
-        CreateStatusBar(1);
-        SetStatusText("This is a model"); // 设置状态栏的文本
 
         // 创建菜单栏，包含文件和帮助菜单
         wxMenuBar* menuBar = new wxMenuBar;  // 创建菜单栏
@@ -163,6 +171,7 @@ public:
 
         // 创建工具栏，用于快速访问功能
         wxToolBar* toolbar = CreateToolBar(wxTB_HORIZONTAL | wxTB_TEXT); // 创建水平工具栏
+        toolbar->SetBackgroundColour(*wxWHITE); // 设置工具栏的背景颜色为白色
         toolbar->AddTool(wxID_NEW, "New", wxArtProvider::GetBitmap(wxART_NEW)); // 添加新建工具图标
         toolbar->AddTool(wxID_OPEN, "Open", wxArtProvider::GetBitmap(wxART_FILE_OPEN)); // 添加打开工具图标
         toolbar->AddTool(wxID_SAVE, "Save", wxArtProvider::GetBitmap(wxART_FILE_SAVE)); // 添加保存工具图标
@@ -188,35 +197,113 @@ public:
 
         toolbar->Realize(); // 完成工具栏的创建
 
-        // 创建树控件，用于管理不同的电子元件
+        // 加载图标并放大到 32x32
+        wxInitAllImageHandlers();
+        wxBitmap andGateIcon, notGateIcon, orGateIcon, nandGateIcon, norGateIcon, xorGateIcon, xnorGateIcon;
+
+        if (andGateIcon.LoadFile("resource/AND gate.png", wxBITMAP_TYPE_PNG)) {
+            wxImage image = andGateIcon.ConvertToImage();
+            image = image.Scale(32, 32, wxIMAGE_QUALITY_HIGH); // 放大到 32x32
+            andGateIcon = wxBitmap(image);
+        }
+        else {
+            wxLogError("Failed to load AND gate icon.");
+        }
+
+        if (notGateIcon.LoadFile("resource/NOT gate.png", wxBITMAP_TYPE_PNG)) {
+            wxImage image = notGateIcon.ConvertToImage();
+            image = image.Scale(32, 32, wxIMAGE_QUALITY_HIGH); // 放大到 32x32
+            notGateIcon = wxBitmap(image);
+        }
+        else {
+            wxLogError("Failed to load NOT gate icon.");
+        }
+
+        if (orGateIcon.LoadFile("resource/OR gate.png", wxBITMAP_TYPE_PNG)) {
+            wxImage image = orGateIcon.ConvertToImage();
+            image = image.Scale(32, 32, wxIMAGE_QUALITY_HIGH); // 放大到 32x32
+            orGateIcon = wxBitmap(image);
+        }
+        else {
+            wxLogError("Failed to load OR gate icon.");
+        }
+
+        if (nandGateIcon.LoadFile("resource/NAND gate.png", wxBITMAP_TYPE_PNG)) {
+            wxImage image = nandGateIcon.ConvertToImage();
+            image = image.Scale(32, 32, wxIMAGE_QUALITY_HIGH); // 放大到 32x32
+            nandGateIcon = wxBitmap(image);
+        }
+        else {
+            wxLogError("Failed to load NAND gate icon.");
+        }
+
+        if (norGateIcon.LoadFile("resource/NOR gate.png", wxBITMAP_TYPE_PNG)) {
+            wxImage image = norGateIcon.ConvertToImage();
+            image = image.Scale(32, 32, wxIMAGE_QUALITY_HIGH); // 放大到 32x32
+            norGateIcon = wxBitmap(image);
+        }
+        else {
+            wxLogError("Failed to load NOR gate icon.");
+        }
+
+        if (xorGateIcon.LoadFile("resource/XOR gate.png", wxBITMAP_TYPE_PNG)) {
+            wxImage image = xorGateIcon.ConvertToImage();
+            image = image.Scale(32, 32, wxIMAGE_QUALITY_HIGH); // 放大到 32x32
+            xorGateIcon = wxBitmap(image);
+        }
+        else {
+            wxLogError("Failed to load XOR gate icon.");
+        }
+
+        if (xnorGateIcon.LoadFile("resource/XNOR gate.png", wxBITMAP_TYPE_PNG)) {
+            wxImage image = xnorGateIcon.ConvertToImage();
+            image = image.Scale(32, 32, wxIMAGE_QUALITY_HIGH); // 放大到 32x32
+            xnorGateIcon = wxBitmap(image);
+        }
+        else {
+            wxLogError("Failed to load XNOR gate icon.");
+        }
+
+
+
+        // 创建树控件
         treeCtrl = new wxTreeCtrl(subPanel, wxID_ANY, wxDefaultPosition, wxSize(400, 800), wxTR_DEFAULT_STYLE);
+
+        // 创建图像列表并添加图标
+        wxImageList* imageList = new wxImageList(32, 32); // 图标大小为 32x32
+        if (!imageList->Add(andGateIcon)) wxLogError("Failed to add AND gate icon to image list.");
+        if (!imageList->Add(notGateIcon)) wxLogError("Failed to add NOT gate icon to image list.");
+        if (!imageList->Add(orGateIcon)) wxLogError("Failed to add OR gate icon to image list.");
+        if (!imageList->Add(nandGateIcon)) wxLogError("Failed to add NAND gate icon to image list.");
+        if (!imageList->Add(norGateIcon)) wxLogError("Failed to add NOR gate icon to image list.");
+        if (!imageList->Add(xorGateIcon)) wxLogError("Failed to add XOR gate icon to image list.");
+        if (!imageList->Add(xnorGateIcon)) wxLogError("Failed to add XNOR gate icon to image list.");
+
+        // 将图像列表设置到树控件
+        treeCtrl->AssignImageList(imageList);
 
         // 创建根节点
         wxTreeItemId rootId = treeCtrl->AddRoot("Electronic Components");
 
-        // 添加电子元件节点
-        treeCtrl->AppendItem(rootId, "AND Gate");
-        treeCtrl->AppendItem(rootId, "OR Gate");
-        treeCtrl->AppendItem(rootId, "NOT Gate");
-        treeCtrl->AppendItem(rootId, "NAND Gate");
-        treeCtrl->AppendItem(rootId, "NOR Gate");
-        treeCtrl->AppendItem(rootId, "XOR Gate");
-        treeCtrl->AppendItem(rootId, "XNOR Gate");
-        treeCtrl->AppendItem(rootId, "Delete");
+        // 添加电子元件节点并设置图标
+        treeCtrl->AppendItem(rootId, "AND Gate", 0); // 0 对应 AND Gate 图标
+        treeCtrl->AppendItem(rootId, "OR Gate", 2);  // 2 对应 OR Gate 图标
+        treeCtrl->AppendItem(rootId, "NOT Gate", 1); // 1 对应 NOT Gate 图标
+        treeCtrl->AppendItem(rootId, "NAND Gate", 3); // 3 对应 NAND Gate 图标
+        treeCtrl->AppendItem(rootId, "NOR Gate", 4);  // 4 对应 NOR Gate 图标
+        treeCtrl->AppendItem(rootId, "XOR Gate", 5);  // 5 对应 XOR Gate 图标
+        treeCtrl->AppendItem(rootId, "XNOR Gate", 6); // 6 对应 XNOR Gate 图标
 
         // 展开根节点
         treeCtrl->Expand(rootId);
 
-        // 设置树控件的布局
-        wxBoxSizer* treeSizer = new wxBoxSizer(wxVERTICAL);
-        treeSizer->Add(treeCtrl, 30, wxEXPAND | wxALL, 10);
-        subPanel->SetSizer(treeSizer);
+
 
         // 绑定子面板大小变化事件，确保树控件在大小变化时也跟随调整
         subPanel->Bind(wxEVT_SIZE, [this](wxSizeEvent& event) {
             wxSize size = event.GetSize();
             // 将树控件的宽度设置为子面板宽度的25%
-            treeCtrl->SetSize(size.x * 0.25, size.y);
+            treeCtrl->SetSize(size.x, size.y*0.5);
             event.Skip(); // 继续处理事件
             });
 
@@ -237,6 +324,12 @@ public:
         Bind(wxEVT_MENU, &MyFrame::OnShowTextBox, this, ID_SHOW_TEXT_BOX);//绑定help指导文档
         Bind(wxEVT_MENU, &MyFrame::OnConnectButtonClick, this, wxID_LINE); // 绑定lianxian事件
         Bind(wxEVT_MENU, &MyFrame::Light, this, wxID_NEW_BUTTON);
+        // 绑定工具栏按钮事件
+        Bind(wxEVT_TOOL, &MyFrame::OnToolbarButtonClick, this, wxID_AND_GATE);
+        Bind(wxEVT_TOOL, &MyFrame::OnToolbarButtonClick, this, wxID_NOT_GATE);
+        Bind(wxEVT_TOOL, &MyFrame::OnToolbarButtonClick, this, wxID_OR_GATE);
+        Bind(wxEVT_TOOL, &MyFrame::OnToolbarButtonClick, this, wxID_LINE);
+        Bind(wxEVT_TOOL, &MyFrame::OnToolbarButtonClick, this, wxID_ARROW);
 
         // 绑定树控件选择事件
         treeCtrl->Bind(wxEVT_TREE_SEL_CHANGED, &MyFrame::ToolSelected, this);
@@ -407,22 +500,38 @@ public:
 
     // 选择所有的事件处理函数
     void OnSelectAll(wxCommandEvent& event) {
-    //    drawPanel->SelectAll(); // 调用 DrawPanel 中的 SelectAll 方法
+       drawPanel->SelectAll(); // 调用 DrawPanel 中的 SelectAll 方法
     }
 
     //复制选中的事件处理函数
     void OnCopy(wxCommandEvent& event) {
-    //    drawPanel->CopySelected(); // 调用 DrawPanel 中的 CopySelected 方法
+        drawPanel->CopySelected(); // 调用 DrawPanel 中的 CopySelected 方法
     }
 
     //粘贴复制的事件处理函数
     void OnPaste(wxCommandEvent& event) {
-    //    drawPanel->PasteCopied(); // 调用 DrawPanel 中的 PasteCopied 方法
+       drawPanel->PasteCopied(); // 调用 DrawPanel 中的 PasteCopied 方法
     }
 
     // 剪切的事件处理函数
     void OnCut(wxCommandEvent& event) {
-    //    drawPanel->CutSelected(); // 调用 DrawPanel 中的 CutSelected 方法
+       drawPanel->CutSelected(); // 调用 DrawPanel 中的 CutSelected 方法
+    }
+
+    void OnSubPanelPaint(wxPaintEvent& event) {
+        wxPanel* subPanel = dynamic_cast<wxPanel*>(event.GetEventObject());
+        if (subPanel) {
+            wxPaintDC dc(subPanel);
+
+            // 获取子面板的大小
+            wxSize size = subPanel->GetSize();
+
+            // 设置边框颜色和宽度
+            dc.SetPen(wxPen(*wxBLACK, 2));  // 黑色边框，宽度为2像素
+
+            // 绘制矩形边框
+            dc.DrawRectangle(0, 0, size.x, size.y);
+        }
     }
 
     void Light(wxCommandEvent& event) {
@@ -700,6 +809,26 @@ public:
         }
         else if (nodeName == "XNOR Gate") {
             drawPanel->SetCurrentTool(Component::Tool::XNOR_GATE);
+        }
+    }
+
+    // 工具栏按钮点击事件处理函数
+    void OnToolbarButtonClick(wxCommandEvent& event) {
+        int toolId = event.GetId(); // 获取点击的工具栏按钮的 ID
+
+        // 根据按钮 ID 设置当前工具
+        switch (toolId) {
+        case wxID_AND_GATE:
+            drawPanel->SetCurrentTool(Component::Tool::AND_GATE);
+            break;
+        case wxID_OR_GATE:
+            drawPanel->SetCurrentTool(Component::Tool::OR_GATE);
+            break;
+        case wxID_NOT_GATE:
+            drawPanel->SetCurrentTool(Component::Tool::NOT_GATE);
+            break;
+        default:
+            break;
         }
     }
 };

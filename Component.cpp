@@ -18,14 +18,15 @@ using json = nlohmann::json;
 
 class Component {
 public:
-    enum class Tool { NONE, AND_GATE, OR_GATE, NOT_GATE, NAND_GATE, NOR_GATE, XOR_GATE, XNOR_GATE, BATTERY, BULB}; // 定义工具类型，包括无工具、与门、或门和非门 // 定义工具类型，包括无工具、与门、或门和非门
+    enum class Tool { NONE, AND_GATE, OR_GATE, NOT_GATE, NAND_GATE, NOR_GATE, XOR_GATE, XNOR_GATE, BATTERY, BULB }; // 定义工具类型，包括无工具、与门、或门和非门 // 定义工具类型，包括无工具、与门、或门和非门
 
     Tool tool;  // 组件的类型
     wxPoint position;  // 组件的位置
     std::vector<std::pair<wxPoint, wxPoint>> pins;  // 输入引脚（起点和终点），注：pins中存储的位置均是json文件中给的原始位置数据（相对位置），
-                                                    // 也就是说，在画板中的真实位置需要元件的位置+该位置
-    //布尔值，表示当前值
-	bool value = false;
+    // 也就是说，在画板中的真实位置需要元件的位置+该位置
+//布尔值，表示当前值
+    bool value = false;
+    bool isSelected = false;  // 新增：是否被选中
 
     Component(Tool t, const wxPoint& pos)
         : tool(t), position(pos) {}
@@ -54,17 +55,21 @@ public:
     }
 
 
-    // 绘制组件本身
-    void Draw(wxDC& dc, const wxPoint& mousePos) {//mousePos是对齐后的
-        // 根据工具类型选择对应的 JSON 文件
-        std::string filename = GetComponentFileName(tool);
 
-        // 绘制该组件
-        DrawComponentShape(dc);
-
-        // 绘制输入输出引脚
-        DrawPins(dc, mousePos);
+void Draw(wxDC& dc, const wxPoint& mousePos) {
+    if (isSelected) {
+        dc.SetPen(wxPen(*wxRED, 3));  // 高亮颜色（红色，线宽为3）
+    } else {
+        dc.SetPen(wxPen(*wxBLACK, 3));  // 默认颜色（黑色，线宽为3）
     }
+
+    // 绘制组件形状
+    DrawComponentShape(dc);
+
+    // 绘制引脚
+    DrawPins(dc, mousePos);
+}
+
 
     // 更新引脚位置的方法，传入偏移量
     void UpdatePinPositions(const wxPoint& offset) {
@@ -78,7 +83,7 @@ public:
     bool IsMouseOverComponent(const wxPoint& mousePos) {//mousePos是对齐hou的
         json componentJson;
         LoadComponentFromJson("tools/" + GetComponentFileName(tool), componentJson);
-        
+
         if (abs(position.x - mousePos.x) < 25 && abs(position.y - mousePos.y) < 25) {
             return true;
         }
@@ -86,11 +91,11 @@ public:
         return IsMouseOverPin(mousePos);
     }
 
-    
+
     // 判断鼠标是否在某个引脚上
     bool IsMouseOverPin(const wxPoint& mousePos) const {
         for (const auto& pin : pins) {
-            if (IsMouseOverLine(pin.first+position, pin.second+position, mousePos)) {
+            if (IsMouseOverLine(pin.first + position, pin.second + position, mousePos)) {
                 return true;
             }
         }
@@ -103,7 +108,7 @@ public:
                 return pin.first + position;
             }
         }
-        return wxPoint(-1,-1);
+        return wxPoint(-1, -1);
     }
 
     // 判断鼠标是否在引脚的线段上
@@ -130,7 +135,7 @@ public:
     }
 
 private:
-    
+
     void LoadComponentFromJson(const std::string& filename, json& componentJson) const {
         std::ifstream file(filename);
         if (!file.is_open()) {
@@ -145,6 +150,7 @@ private:
     void DrawComponentShape(wxDC& dc) {
         json componentJson;
         LoadComponentFromJson("tools/" + GetComponentFileName(tool), componentJson);
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
 
         // 绘制直线部分
         dc.SetPen(wxPen(*wxBLACK, 4));
@@ -175,6 +181,28 @@ private:
             int radius = circle["radius"].get<int>();
             dc.DrawCircle(position.x + cx, position.y + cy, radius);
         }
+
+        // 绘制电源端部分（如有）
+        if (componentJson.contains("battery")) {
+            auto battery = componentJson["battery"];
+            int cx = battery["center"][0].get<int>();
+            int cy = battery["center"][1].get<int>();
+            int radius = battery["radius"].get<int>();
+            dc.SetBrush(wxBrush(wxColour(0, 127, 0)));
+            dc.DrawCircle(position.x + cx, position.y + cy, radius);
+            dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        }
+
+        // 绘制灯泡端部分（如有）
+        if (componentJson.contains("bulb")) {
+            auto bulb = componentJson["bulb"];
+            int cx = bulb["center"][0].get<int>();
+            int cy = bulb["center"][1].get<int>();
+            int radius = bulb["radius"].get<int>();
+            dc.SetBrush(wxBrush(wxColour(0, 127, 0)));
+            dc.DrawCircle(position.x + cx, position.y + cy, radius);
+            dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        }
     }
 
     // 绘制输入和输出引脚
@@ -195,3 +223,4 @@ private:
     }
 
 };
+

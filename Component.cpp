@@ -18,12 +18,14 @@ using json = nlohmann::json;
 
 class Component {
 public:
-    enum class Tool { NONE, AND_GATE, OR_GATE, NOT_GATE, NAND_GATE, NOR_GATE, XOR_GATE, XNOR_GATE, }; // 定义工具类型，包括无工具、与门、或门和非门 // 定义工具类型，包括无工具、与门、或门和非门
+    enum class Tool { NONE, AND_GATE, OR_GATE, NOT_GATE, NAND_GATE, NOR_GATE, XOR_GATE, XNOR_GATE, BATTERY, BULB}; // 定义工具类型，包括无工具、与门、或门和非门 // 定义工具类型，包括无工具、与门、或门和非门
 
     Tool tool;  // 组件的类型
     wxPoint position;  // 组件的位置
     std::vector<std::pair<wxPoint, wxPoint>> pins;  // 输入引脚（起点和终点），注：pins中存储的位置均是json文件中给的原始位置数据（相对位置），
                                                     // 也就是说，在画板中的真实位置需要元件的位置+该位置
+    //布尔值，表示当前值
+	bool value = false;
 
     Component(Tool t, const wxPoint& pos)
         : tool(t), position(pos) {}
@@ -83,8 +85,6 @@ public:
 
         return IsMouseOverPin(mousePos);
     }
-
-
 
     
     // 判断鼠标是否在某个引脚上

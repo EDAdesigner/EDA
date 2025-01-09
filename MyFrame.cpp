@@ -10,6 +10,9 @@
 #include <nlohmann/json.hpp>
 #include "Common.cpp"
 #include "DrawPanel.cpp"
+#include <map>
+#include <tuple>
+#include <stack>
 
 using namespace nlohmann; // 使用 nlohmann 命名空间
 
@@ -163,6 +166,8 @@ public:
         toolbar->AddTool(wxID_NEW, "New", wxArtProvider::GetBitmap(wxART_NEW)); // 添加新建工具图标
         toolbar->AddTool(wxID_OPEN, "Open", wxArtProvider::GetBitmap(wxART_FILE_OPEN)); // 添加打开工具图标
         toolbar->AddTool(wxID_SAVE, "Save", wxArtProvider::GetBitmap(wxART_FILE_SAVE)); // 添加保存工具图标
+        toolbar->AddTool(wxID_NEW_BUTTON, "New Button", wxArtProvider::GetBitmap(wxART_HELP)); // 使用帮助图标作为示例
+
         if (bitmapForAndgate.IsOk()) {
             toolbar->AddTool(wxID_AND_GATE, "AND Gate", bitmapForAndgate);
         }
@@ -231,6 +236,7 @@ public:
         Bind(wxEVT_MENU, &MyFrame::OnCut, this, ID_CUT); // 绑定剪切事件
         Bind(wxEVT_MENU, &MyFrame::OnShowTextBox, this, ID_SHOW_TEXT_BOX);//绑定help指导文档
         Bind(wxEVT_MENU, &MyFrame::OnConnectButtonClick, this, wxID_LINE); // 绑定lianxian事件
+        Bind(wxEVT_MENU, &MyFrame::Light, this, wxID_NEW_BUTTON);
 
         // 绑定树控件选择事件
         treeCtrl->Bind(wxEVT_TREE_SEL_CHANGED, &MyFrame::ToolSelected, this);
@@ -417,6 +423,183 @@ public:
     // 剪切的事件处理函数
     void OnCut(wxCommandEvent& event) {
     //    drawPanel->CutSelected(); // 调用 DrawPanel 中的 CutSelected 方法
+    }
+
+    void Light(wxCommandEvent& event) {
+
+        //获得components
+        std::vector<Component> components = drawPanel->components;
+        //获取connections
+        std::vector<std::pair<wxPoint, wxPoint>> connections = drawPanel->connections;
+
+	    std::stack<Component> stack1;
+        std::stack<Component> stack2;
+
+        //从灯泡出发，将遇到的所有元件对应的符号表达式压入栈中,直到无法找到连接对象或者连接对象为电池
+        for (auto& component : components) {
+            if (component.tool == Component::Tool::BULB) {
+                stack1.push(component);
+                break;
+            }
+        }
+		if (stack1.empty()) {
+			wxLogMessage("No bulb found");
+			return;
+		}
+
+        Component noneComponent(Component::Tool::NONE, wxPoint(-1, -1));
+        while (!stack1.empty()) {
+			Component current = stack1.top();
+			stack1.pop();
+
+			stack2.push(current);
+
+			/*对current元件连接的对象进行识别：
+            如果不是非门，代表有两个输入引脚，需要先将连接的元件压入栈中，再找到两个输入引脚对应的元件
+            如果是非门，代表有一个输入引脚，需要先将连接的元件压入栈中，再找到一个对应的元件就行
+            如果是电源，就压入电源元件，如果没有连接对象，就创建一个空的Component，tool是NONE*/
+
+            // 对 current 元件连接的对象进行识别
+            if (current.tool != Component::Tool::NOT_GATE || current.tool != Component::Tool::BULB || current.tool != Component::Tool::BATTERY) {
+                // 不是非门和灯泡，有两个输入引脚
+                for (auto& connection : connections) {
+                    if (connection.second == current.pins[0].second) {
+                        wxPoint nextPosition = connection.first;
+                        for (auto& component : components) {
+                            if (current.tool != Component::Tool::NOT_GATE) {
+                                if (component.pins[2].second == nextPosition) {
+                                    stack1.push(component);
+                                }
+                                else {
+                                    stack1.push(noneComponent);
+                                }
+							}
+                            else {
+                                if (component.pins[1].second == nextPosition) {
+                                    stack1.push(component);
+                                }
+                                else {
+                                    stack1.push(noneComponent);
+                                }
+                            }
+                        }
+                    }
+					if (connection.second == current.pins[1].second) {
+						wxPoint nextPosition = connection.first;
+                        for (auto& component : components) {
+                            if (current.tool != Component::Tool::NOT_GATE) {
+                                if (component.pins[2].second == nextPosition) {
+                                    stack1.push(component);
+                                }
+                                else {
+                                    stack1.push(noneComponent);
+                                }
+                            }
+                            else {
+                                if (component.pins[1].second == nextPosition) {
+                                    stack1.push(component);
+                                }
+                                else {
+                                    stack1.push(noneComponent);
+                                }
+                            }
+                        }
+					}
+                }
+            }
+            else if (current.tool == Component::Tool::NOT_GATE || current.tool == Component::Tool::BULB){
+                // 是灯泡或灯泡，有一个输入引脚
+                for (auto& connection : connections) {
+                    if (connection.second == current.pins[0].second) {
+                        wxPoint nextPosition = connection.first;
+                        for (auto& component : components) {
+                            if (current.tool != Component::Tool::NOT_GATE) {
+                                if (component.pins[2].second == nextPosition) {
+                                    stack1.push(component);
+                                }
+                                else {
+                                    stack1.push(noneComponent);
+                                }
+                            }
+                            else {
+                                if (component.pins[1].second == nextPosition) {
+                                    stack1.push(component);
+                                }
+								else {
+									stack1.push(noneComponent);
+								}
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 如果是电源，压入电源元件
+            if (current.tool == Component::Tool::BATTERY) {
+            }
+        }
+
+		// 从栈中弹出元件，计算输出
+
+        std::vector<bool> output = { false };
+        int i = 0;
+
+        while (!stack2.empty()) {
+            Component current = stack2.top();
+            stack2.pop();
+
+            switch (current.tool) {
+                case Component::Tool::NOT_GATE:
+                    // 非门的输出是输入的反
+                    output[i] = !output[i];
+                    break;
+                case Component::Tool::BATTERY:
+                    // 电池的输出是恒定的
+                    output[i++] = true;
+                    break;
+                case Component::Tool::OR_GATE:
+					// 或门的输出是输入的或
+					bool k = output[i] || output[i-1];
+                    output[i - 1] = k;
+                    i--;
+                    break;
+                case Component::Tool::AND_GATE:
+					// 与门de输出是输入的与
+					bool j = output[i] && output[i - 1];
+					output[i - 1] = j;
+					i--;
+					break;
+			    case Component::Tool::NAND_GATE:
+					// 与非门的输出是输入的与非
+					bool m = !(output[i] && output[i - 1]);
+					output[i - 1] = m;
+					i--;
+				    break;
+			    case Component::Tool::NOR_GATE:
+					// 或非门的输出是输入的或非
+					bool n = !(output[i] || output[i - 1]);
+					output[i - 1] = n;
+					i--;
+				    break;
+			    case Component::Tool::XOR_GATE:
+					// 异或门的输出是输入的异或
+					bool o = output[i] ^ output[i - 1];
+					output[i - 1] = o;
+					i--;
+				    break;
+			    case Component::Tool::XNOR_GATE:
+					// 与非门的输出是输入的与非
+					bool p = !(output[i] ^ output[i - 1]);
+					output[i - 1] = p;
+					i--;
+				    break;
+            }
+
+			if (current.tool == Component::Tool::BULB) {
+				wxLogMessage("The bulb is %s", output[i] ? "ON" : "OFF");
+			}
+        }
+            
     }
 
 

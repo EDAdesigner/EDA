@@ -7,6 +7,7 @@
 #endif
 
 #define ID_SHOW_TEXT_BOX 10003//手动定义指导教程文本标识符
+#define wxID_NEW_BUTTON 10016
 
 
 #define ID_SHOW_TEXT_BOX 10003//手动定义指导教程文本标识符
@@ -22,3 +23,4 @@
 #define wxID_NOR_GATE 10012//手动定义或非门标识符
 #define wxID_LINE 10013//手动定义连线
 #define wxID_ARROW 10014//手动定义鼠标
+#define wxID_LIGHT 10015//手动定义仿真

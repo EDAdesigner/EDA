@@ -1,28 +1,26 @@
 {
-  "circle": [
-    {
-      "center": [
-        0,
-        0
-      ],
-      "radius": 20
-    },
-    {
-      "center": [
-        0,
-        0
-      ],
-      "radius": 12
-    }
-  ],
+  "circle": {
+    "center": [
+      0,
+      0
+    ],
+    "radius": 20
+  },
+  "bulb": {
+    "center": [
+      0,
+      0
+    ],
+    "radius": 12
+  },
   "outputs": [
     {
       "start": [
-        32,
+        -32,
         0
       ],
       "end": [
-        20,
+        -20,
         0
       ]
     }

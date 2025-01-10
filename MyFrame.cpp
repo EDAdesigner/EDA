@@ -356,7 +356,6 @@ public:
         Bind(wxEVT_MENU, &MyFrame::OnPaste, this, ID_PASTE); // 绑定粘贴事件
         Bind(wxEVT_MENU, &MyFrame::OnCut, this, ID_CUT); // 绑定剪切事件
         Bind(wxEVT_MENU, &MyFrame::OnShowTextBox, this, ID_SHOW_TEXT_BOX);//绑定help指导文档
-        Bind(wxEVT_MENU, &MyFrame::OnConnectButtonClick, this, wxID_LINE); // 绑定lianxian事件
         Bind(wxEVT_MENU, &MyFrame::Light, this, wxID_NEW_BUTTON);
         // 绑定工具栏按钮事件
         Bind(wxEVT_TOOL, &MyFrame::OnToolbarButtonClick, this, wxID_AND_GATE);
@@ -376,11 +375,6 @@ public:
     // 声明绘图面板指针，用于操作绘制的组件
     DrawPanel* drawPanel;
     wxString path;//文件路径
-
-    // 进入连线模式
-    void OnConnectButtonClick(wxCommandEvent& event) {
-        drawPanel->connecting=true;  // 设置进入连线模式
-    }
 
     // 处理退出事件
     void OnExit(wxCommandEvent& event) {
@@ -867,6 +861,8 @@ public:
         case wxID_NOT_GATE:
             drawPanel->SetCurrentTool(Component::Tool::NOT_GATE);
             break;
+        case wxID_LINE:
+            drawPanel->connecting = true;
         default:
             break;
         }

@@ -185,6 +185,17 @@ public:
             bitmapForDelete = wxBitmap(imageForDelete);
         }
 
+        // 加载删除图标
+        wxBitmap bitmapForsimulation;
+        if (!bitmapForsimulation.LoadFile("resource/simulation.png", wxBITMAP_TYPE_PNG)) {
+            wxLogError("Failed to load simulation icon.");
+        }
+        else {
+            wxImage imageForsimulation = bitmapForsimulation.ConvertToImage();
+            imageForsimulation = imageForsimulation.Scale(30, 30, wxIMAGE_QUALITY_HIGH); // 缩放图标到 30x30
+            bitmapForsimulation = wxBitmap(imageForsimulation);
+        }
+
 
         // 创建工具栏
         wxToolBar* toolbar = CreateToolBar(wxTB_HORIZONTAL | wxTB_TEXT); // 创建水平工具栏
@@ -195,9 +206,11 @@ public:
         toolbar->AddTool(wxID_NEW, "New", wxArtProvider::GetBitmap(wxART_NEW)); // 添加新建工具图标
         toolbar->AddTool(wxID_OPEN, "Open", wxArtProvider::GetBitmap(wxART_FILE_OPEN)); // 添加打开工具图标
         toolbar->AddTool(wxID_SAVE, "Save", wxArtProvider::GetBitmap(wxART_FILE_SAVE)); // 添加保存工具图标
-        toolbar->AddTool(wxID_NEW_BUTTON, "New Button", wxArtProvider::GetBitmap(wxART_HELP)); // 使用帮助图标作为示例
 
         // 添加自定义工具图标
+        if (bitmapForsimulation.IsOk()) {
+            toolbar->AddTool(wxID_NEW_BUTTON, "simulation", bitmapForsimulation);
+        }
         if (bitmapForCopy.IsOk()) {
             toolbar->AddTool(ID_COPY, "Copy", bitmapForCopy);
         }

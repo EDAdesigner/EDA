@@ -597,43 +597,22 @@ public:
             如果是电源，就压入电源元件，如果没有连接对象，就创建一个空的Component，tool是NONE*/
 
             // 对 current 元件连接的对象进行识别
-            if (current.tool != Component::Tool::NOT_GATE || current.tool != Component::Tool::BULB || current.tool != Component::Tool::BATTERY) {
+            if (current.tool != Component::Tool::NOT_GATE && current.tool != Component::Tool::BULB && current.tool != Component::Tool::BATTERY && current.tool != Component::Tool::NONE) {
                 // 不是非门和灯泡，有两个输入引脚
                 for (auto& connection : connections) {
-                    if (connection.second == current.pins[0].second) {
-                        wxPoint nextPosition = connection.first;
+                    if (connection.second == current.pins[0].first + current.position || connection.first == current.pins[0].first + current.position) {
+                        wxPoint nextPosition = (connection.second == current.pins[0].first + current.position) ? connection.first : connection.second;
                         for (auto& component : components) {
-                            if (current.tool != Component::Tool::NOT_GATE) {
-                                if (component.pins[2].second == nextPosition) {
+                            if (component.tool != Component::Tool::NOT_GATE && component.tool != Component::Tool::BULB && component.tool != Component::Tool::BATTERY) {
+                                if (component.pins[2].first + component.position == nextPosition) {
                                     stack1.push(component);
                                 }
                                 else {
                                     stack1.push(noneComponent);
                                 }
 							}
-                            else {
-                                if (component.pins[1].second == nextPosition) {
-                                    stack1.push(component);
-                                }
-                                else {
-                                    stack1.push(noneComponent);
-                                }
-                            }
-                        }
-                    }
-					if (connection.second == current.pins[1].second) {
-						wxPoint nextPosition = connection.first;
-                        for (auto& component : components) {
-                            if (current.tool != Component::Tool::NOT_GATE) {
-                                if (component.pins[2].second == nextPosition) {
-                                    stack1.push(component);
-                                }
-                                else {
-                                    stack1.push(noneComponent);
-                                }
-                            }
-                            else {
-                                if (component.pins[1].second == nextPosition) {
+                            else if(component.tool != Component::Tool::BULB && component.tool != Component::Tool::BATTERY){
+                                if (component.pins[1].first + component.position == nextPosition) {
                                     stack1.push(component);
                                 }
                                 else {
@@ -642,24 +621,49 @@ public:
                             }
                         }
 					}
-                }
-            }
-            else if (current.tool == Component::Tool::NOT_GATE || current.tool == Component::Tool::BULB){
-                // 是灯泡或灯泡，有一个输入引脚
-                for (auto& connection : connections) {
-                    if (connection.second == current.pins[0].second) {
-                        wxPoint nextPosition = connection.first;
+					else { stack1.push(noneComponent); 
+                    }
+					if (connection.second == current.pins[1].first + current.position || connection.first == current.pins[1].first + current.position) {
+                        wxPoint nextPosition = (connection.second == current.pins[1].first + current.position) ? connection.first : connection.second;
                         for (auto& component : components) {
-                            if (current.tool != Component::Tool::NOT_GATE) {
-                                if (component.pins[2].second == nextPosition) {
+                            if (component.tool != Component::Tool::NOT_GATE && component.tool != Component::Tool::BULB && component.tool != Component::Tool::BATTERY) {
+                                if (component.pins[2].first + component.position == nextPosition) {
                                     stack1.push(component);
                                 }
                                 else {
                                     stack1.push(noneComponent);
                                 }
                             }
-                            else {
-                                if (component.pins[1].second == nextPosition) {
+                            else if(component.tool != Component::Tool::BULB && component.tool != Component::Tool::BATTERY){
+                                if (component.pins[1].first + component.position == nextPosition) {
+                                    stack1.push(component);
+                                }
+                                else {
+                                    stack1.push(noneComponent);
+                                }
+                            }
+                        }
+					}
+                    else { stack1.push(noneComponent); 
+                    }
+                }
+            }
+            else if (current.tool == Component::Tool::NOT_GATE || current.tool == Component::Tool::BULB){
+                // 是灯泡或not，有一个输入引脚
+                for (auto& connection : connections) {
+                    if (connection.second == current.pins[0].first + current.position || connection.first == current.pins[0].first + current.position) {
+						wxPoint nextPosition = (connection.second == current.pins[0].first + current.position) ? connection.first : connection.second;
+                        for (auto& component : components) {
+                            if (component.tool != Component::Tool::NOT_GATE && component.tool != Component::Tool::BULB && component.tool != Component::Tool::BATTERY) {
+                                if (component.pins[2].first + component.position == nextPosition) {
+                                    stack1.push(component);
+                                }
+                                else {
+                                    stack1.push(noneComponent);
+                                }
+                            }
+                            else if (component.tool != Component::Tool::BULB && component.tool != Component::Tool::BATTERY){
+                                if (component.pins[1].first + component.position == nextPosition) {
                                     stack1.push(component);
                                 }
 								else {
@@ -668,17 +672,14 @@ public:
                             }
                         }
                     }
+                    else { stack1.push(noneComponent); 
+                    }
                 }
-            }
-
-            // 如果是电源，压入电源元件
-            if (current.tool == Component::Tool::BATTERY) {
             }
         }
 
 		// 从栈中弹出元件，计算输出
-
-        std::vector<bool> output = { false };
+        bool output[sizeof(stack2)] = {false};
         int i = 0;
 		bool j = false;
 		bool k = false;
@@ -737,6 +738,9 @@ public:
 					output[i - 1] = p;
 					i--;
 				    break;
+                case Component::Tool::NONE:
+                    output[i++] = false;
+                    break;
             }
 
 			if (current.tool == Component::Tool::BULB) {

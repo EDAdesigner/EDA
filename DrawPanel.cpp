@@ -370,5 +370,52 @@ public:
 
         Refresh();  // 刷新面板以重新绘制
     }
+    //使得所有元器件向上移动
+    void CircuitUp() {
+        const int moveDistance = 40; // 每次移动的距离（像素）
+
+        // 遍历所有元器件
+        for (auto& component : components) {
+            // 更新元器件的位置
+            component.position.y -= moveDistance;
+
+            // 更新引脚的绝对位置
+            component.UpdatePinPositions();
+        }
+
+        // 更新所有连接线的位置
+        for (auto& connection : connections) {
+            connection.first.y -= moveDistance;  // 更新连接线起点
+            connection.second.y -= moveDistance; // 更新连接线终点
+        }
+
+        // 强制刷新绘图区域
+        Refresh();
+        Update();
+    }
+
+    //使得所有元器件向下移动
+    void CircuitDown() {
+        const int moveDistance = 40; // 每次移动的距离（像素）
+
+        // 遍历所有元器件
+        for (auto& component : components) {
+            // 更新元器件的位置（向下移动）
+            component.position.y += moveDistance;
+
+            // 更新引脚的绝对位置
+            component.UpdatePinPositions();
+        }
+
+        // 更新所有连接线的位置
+        for (auto& connection : connections) {
+            connection.first.y += moveDistance;  // 更新连接线起点
+            connection.second.y += moveDistance; // 更新连接线终点
+        }
+
+        // 强制刷新绘图区域
+        Refresh();
+        Update();
+    }
 
 };

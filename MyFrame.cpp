@@ -83,8 +83,8 @@ public:
         projectMenu->Append(wxID_ANY, "Load Library");
         projectMenu->Append(wxID_ANY, "Unload Libraries...");
         projectMenu->AppendSeparator();//添加分隔符
-        projectMenu->Append(wxID_ANY, "Move Circuit Up");
-        projectMenu->Append(wxID_ANY, "Move Circuit Down");
+        projectMenu->Append(ID_CIRCUIT_UP, "Move Circuit Up");
+        projectMenu->Append(ID_CIRCUIT_DOWN, "Move Circuit Down");
         projectMenu->Append(wxID_ANY, "Set as Main Circuit");
         menuBar->Append(projectMenu, "Project"); // 将项目菜单添加到菜单栏
 
@@ -115,30 +115,9 @@ public:
         SetSize(800, 600); // 设置窗口的初始大小
         Show(true); // 显示窗口
 
+
         // 初始化图像处理器
         wxInitAllImageHandlers();
-
-        // 加载 AND 门图标
-        wxBitmap bitmapForAndgate;
-        if (!bitmapForAndgate.LoadFile("resource/AND gate.png", wxBITMAP_TYPE_PNG)) {
-            wxLogError("Failed to load AND gate icon.");
-        }
-        else {
-            wxImage imageForAnd = bitmapForAndgate.ConvertToImage();
-            imageForAnd = imageForAnd.Scale(30, 30, wxIMAGE_QUALITY_HIGH); // 缩放图标到 30x30
-            bitmapForAndgate = wxBitmap(imageForAnd);
-        }
-
-        // 加载 NOT 门图标
-        wxBitmap bitmapForNOTgate;
-        if (!bitmapForNOTgate.LoadFile("resource/NOT gate.png", wxBITMAP_TYPE_PNG)) {
-            wxLogError("Failed to load NOT gate icon.");
-        }
-        else {
-            wxImage imageForNOTgate = bitmapForNOTgate.ConvertToImage();
-            imageForNOTgate = imageForNOTgate.Scale(30, 30, wxIMAGE_QUALITY_HIGH); // 缩放图标到 30x30
-            bitmapForNOTgate = wxBitmap(imageForNOTgate);
-        }
 
         // 加载线条图标
         wxBitmap bitmapForLINE;
@@ -162,16 +141,50 @@ public:
             bitmapForARROW = wxBitmap(imageForARROW);
         }
 
-        // 加载 OR 门图标
-        wxBitmap bitmapForORgate;
-        if (!bitmapForORgate.LoadFile("resource/OR gate.png", wxBITMAP_TYPE_PNG)) {
-            wxLogError("Failed to load OR gate icon.");
+        // 加载复制图标
+        wxBitmap bitmapForCopy;
+        if (!bitmapForCopy.LoadFile("resource/copy.png", wxBITMAP_TYPE_PNG)) {
+            wxLogError("Failed to load Copy icon.");
         }
         else {
-            wxImage imageForORgate = bitmapForORgate.ConvertToImage();
-            imageForORgate = imageForORgate.Scale(30, 30, wxIMAGE_QUALITY_HIGH); // 缩放图标到 30x30
-            bitmapForORgate = wxBitmap(imageForORgate);
+            wxImage imageForCopy = bitmapForCopy.ConvertToImage();
+            imageForCopy = imageForCopy.Scale(30, 30, wxIMAGE_QUALITY_HIGH); // 缩放图标到 30x30
+            bitmapForCopy = wxBitmap(imageForCopy);
         }
+
+        // 加载粘贴图标
+        wxBitmap bitmapForPaste;
+        if (!bitmapForPaste.LoadFile("resource/paste.png", wxBITMAP_TYPE_PNG)) {
+            wxLogError("Failed to load Paste icon.");
+        }
+        else {
+            wxImage imageForPaste = bitmapForPaste.ConvertToImage();
+            imageForPaste = imageForPaste.Scale(30, 30, wxIMAGE_QUALITY_HIGH); // 缩放图标到 30x30
+            bitmapForPaste = wxBitmap(imageForPaste);
+        }
+
+        // 加载全选图标
+        wxBitmap bitmapForSelectAll;
+        if (!bitmapForSelectAll.LoadFile("resource/select_all.png", wxBITMAP_TYPE_PNG)) {
+            wxLogError("Failed to load Select All icon.");
+        }
+        else {
+            wxImage imageForSelectAll = bitmapForSelectAll.ConvertToImage();
+            imageForSelectAll = imageForSelectAll.Scale(30, 30, wxIMAGE_QUALITY_HIGH); // 缩放图标到 30x30
+            bitmapForSelectAll = wxBitmap(imageForSelectAll);
+        }
+
+        // 加载删除图标
+        wxBitmap bitmapForDelete;
+        if (!bitmapForDelete.LoadFile("resource/delete.png", wxBITMAP_TYPE_PNG)) {
+            wxLogError("Failed to load Delete icon.");
+        }
+        else {
+            wxImage imageForDelete = bitmapForDelete.ConvertToImage();
+            imageForDelete = imageForDelete.Scale(30, 30, wxIMAGE_QUALITY_HIGH); // 缩放图标到 30x30
+            bitmapForDelete = wxBitmap(imageForDelete);
+        }
+
 
         // 创建工具栏
         wxToolBar* toolbar = CreateToolBar(wxTB_HORIZONTAL | wxTB_TEXT); // 创建水平工具栏
@@ -185,14 +198,17 @@ public:
         toolbar->AddTool(wxID_NEW_BUTTON, "New Button", wxArtProvider::GetBitmap(wxART_HELP)); // 使用帮助图标作为示例
 
         // 添加自定义工具图标
-        if (bitmapForAndgate.IsOk()) {
-            toolbar->AddTool(wxID_AND_GATE, "AND Gate", bitmapForAndgate);
+        if (bitmapForCopy.IsOk()) {
+            toolbar->AddTool(ID_COPY, "Copy", bitmapForCopy);
         }
-        if (bitmapForNOTgate.IsOk()) {
-            toolbar->AddTool(wxID_NOT_GATE, "NOT Gate", bitmapForNOTgate);
+        if (bitmapForPaste.IsOk()) {
+            toolbar->AddTool(ID_PASTE, "Paste", bitmapForPaste);
         }
-        if (bitmapForORgate.IsOk()) {
-            toolbar->AddTool(wxID_OR_GATE, "OR Gate", bitmapForORgate);
+        if (bitmapForSelectAll.IsOk()) {
+            toolbar->AddTool(ID_SELECT_ALL, "Select All", bitmapForSelectAll);
+        }
+        if (bitmapForDelete.IsOk()) {
+            toolbar->AddTool(ID_CUT, "Delete", bitmapForDelete);
         }
         if (bitmapForLINE.IsOk()) {
             toolbar->AddTool(wxID_LINE, "CONNECT", bitmapForLINE);
@@ -273,12 +289,12 @@ public:
 
         // 加载 BATTERY 图标
         wxBitmap batteryIcon;
-        if (!batteryIcon.LoadFile("resource/battery.png", wxBITMAP_TYPE_PNG)) {
+        if (!batteryIcon.LoadFile("resource/BATTERY.png", wxBITMAP_TYPE_PNG)) {
             wxLogError("Failed to load BATTERY icon.");
         }
         else {
             wxImage image = batteryIcon.ConvertToImage();
-            image = image.Scale(32, 32, wxIMAGE_QUALITY_HIGH); // 放大到 32x32
+            image = image.Scale(32, 32, wxIMAGE_QUALITY_HIGH); // 缩放图标到 32x32
             batteryIcon = wxBitmap(image);
         }
 
@@ -294,22 +310,21 @@ public:
         }
 
 
-
         // 创建树控件
         treeCtrl = new wxTreeCtrl(subPanel, wxID_ANY, wxDefaultPosition, wxSize(400, 800), wxTR_DEFAULT_STYLE);
 
         // 创建图像列表并添加图标
         wxImageList* imageList = new wxImageList(32, 32); // 图标大小为 32x32
-        if (!imageList->Add(andGateIcon)) ;;
+        if (!imageList->Add(andGateIcon));;
         if (!imageList->Add(andGateIcon)) wxLogError("Failed to add AND gate icon to image list.");;
-       if (!imageList->Add(notGateIcon)) wxLogError("Failed to add NOT gate icon to image list.");
-       if (!imageList->Add(orGateIcon)) wxLogError("Failed to add OR gate icon to image list.");
+        if (!imageList->Add(notGateIcon)) wxLogError("Failed to add NOT gate icon to image list.");
+        if (!imageList->Add(orGateIcon)) wxLogError("Failed to add OR gate icon to image list.");
         if (!imageList->Add(nandGateIcon)) wxLogError("Failed to add NAND gate icon to image list.");
         if (!imageList->Add(norGateIcon)) wxLogError("Failed to add NOR gate icon to image list.");
         if (!imageList->Add(xorGateIcon)) wxLogError("Failed to add XOR gate icon to image list.");
         if (!imageList->Add(xnorGateIcon)) wxLogError("Failed to add XNOR gate icon to image list.");
         if (!imageList->Add(batteryIcon)) wxLogError("Failed to add BATTERY icon to image list."); // 添加 BATTERY 图标
-       if (!imageList->Add(bulbIcon)) wxLogError("Failed to add BULB icon to image list.");       // 添加 BULB 图标
+        if (!imageList->Add(bulbIcon)) wxLogError("Failed to add BULB icon to image list.");       // 添加 BULB 图标
 
         // 将图像列表设置到树控件
         treeCtrl->AssignImageList(imageList);
@@ -318,15 +333,15 @@ public:
         wxTreeItemId rootId = treeCtrl->AddRoot("Electronic Components");
 
         // 添加电子元件节点并设置图标
-        treeCtrl->AppendItem(rootId, "AND Gate", 0); // 0 对应 AND Gate 图标
-        treeCtrl->AppendItem(rootId, "OR Gate", 2);  // 2 对应 OR Gate 图标
-        treeCtrl->AppendItem(rootId, "NOT Gate", 1); // 1 对应 NOT Gate 图标
-        treeCtrl->AppendItem(rootId, "NAND Gate", 3); // 3 对应 NAND Gate 图标
-        treeCtrl->AppendItem(rootId, "NOR Gate", 4);  // 4 对应 NOR Gate 图标
-        treeCtrl->AppendItem(rootId, "XOR Gate", 5);  // 5 对应 XOR Gate 图标
-        treeCtrl->AppendItem(rootId, "XNOR Gate", 6); // 6 对应 XNOR Gate 图标
-        treeCtrl->AppendItem(rootId, "BATTERY", 7);   // 7 对应 BATTERY 图标
-        treeCtrl->AppendItem(rootId, "BULB", 8);      // 8 对应 BULB 图标
+        treeCtrl->AppendItem(rootId, "AND Gate", 1); // 0 对应 AND Gate 图标
+        treeCtrl->AppendItem(rootId, "OR Gate", 3);  // 2 对应 OR Gate 图标
+        treeCtrl->AppendItem(rootId, "NOT Gate", 2); // 1 对应 NOT Gate 图标
+        treeCtrl->AppendItem(rootId, "NAND Gate", 4); // 3 对应 NAND Gate 图标
+        treeCtrl->AppendItem(rootId, "NOR Gate", 5);  // 4 对应 NOR Gate 图标
+        treeCtrl->AppendItem(rootId, "XOR Gate", 6);  // 5 对应 XOR Gate 图标
+        treeCtrl->AppendItem(rootId, "XNOR Gate", 7); // 6 对应 XNOR Gate 图标
+        treeCtrl->AppendItem(rootId, "BATTERY", 8);   // 7 对应 BATTERY 图标
+        treeCtrl->AppendItem(rootId, "BULB", 9);      // 8 对应 BULB 图标
 
         // 展开根节点
         treeCtrl->Expand(rootId);
@@ -337,9 +352,10 @@ public:
         subPanel->Bind(wxEVT_SIZE, [this](wxSizeEvent& event) {
             wxSize size = event.GetSize();
             // 将树控件的宽度设置为子面板宽度的25%
-            treeCtrl->SetSize(size.x, size.y*0.5);
+            treeCtrl->SetSize(size.x, size.y * 0.5);
             event.Skip(); // 继续处理事件
             });
+
 
         // 绑定菜单事件，响应用户的菜单操作
         Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT); // 绑定退出事件
@@ -358,11 +374,15 @@ public:
         Bind(wxEVT_MENU, &MyFrame::OnShowTextBox, this, ID_SHOW_TEXT_BOX);//绑定help指导文档
         Bind(wxEVT_MENU, &MyFrame::Light, this, wxID_NEW_BUTTON);
         // 绑定工具栏按钮事件
-        Bind(wxEVT_TOOL, &MyFrame::OnToolbarButtonClick, this, wxID_AND_GATE);
-        Bind(wxEVT_TOOL, &MyFrame::OnToolbarButtonClick, this, wxID_NOT_GATE);
-        Bind(wxEVT_TOOL, &MyFrame::OnToolbarButtonClick, this, wxID_OR_GATE);
+        Bind(wxEVT_TOOL, &MyFrame::OnCopy, this, ID_COPY); // 复制
+        Bind(wxEVT_TOOL, &MyFrame::OnPaste, this, ID_PASTE); // 粘贴
+        Bind(wxEVT_TOOL, &MyFrame::OnSelectAll, this, ID_SELECT_ALL); // 全选
+        Bind(wxEVT_TOOL, &MyFrame::OnCut, this, ID_CUT); // 删除
         Bind(wxEVT_TOOL, &MyFrame::OnToolbarButtonClick, this, wxID_LINE);
         Bind(wxEVT_TOOL, &MyFrame::OnToolbarButtonClick, this, wxID_ARROW);
+        Bind(wxEVT_MENU, &MyFrame::OnCircuitUp, this, ID_CIRCUIT_UP);
+        Bind(wxEVT_MENU, &MyFrame::OnCircuitDown, this, ID_CIRCUIT_DOWN);
+
 
         // 绑定树控件选择事件
         treeCtrl->Bind(wxEVT_TREE_SEL_CHANGED, &MyFrame::ToolSelected, this);
@@ -528,7 +548,7 @@ public:
 
     // 选择所有的事件处理函数
     void OnSelectAll(wxCommandEvent& event) {
-       drawPanel->SelectAll(); // 调用 DrawPanel 中的 SelectAll 方法
+        drawPanel->SelectAll(); // 调用 DrawPanel 中的 SelectAll 方法
     }
 
     //复制选中的事件处理函数
@@ -538,12 +558,12 @@ public:
 
     //粘贴复制的事件处理函数
     void OnPaste(wxCommandEvent& event) {
-       drawPanel->PasteCopied(); // 调用 DrawPanel 中的 PasteCopied 方法
+        drawPanel->PasteCopied(); // 调用 DrawPanel 中的 PasteCopied 方法
     }
 
     // 剪切的事件处理函数
     void OnCut(wxCommandEvent& event) {
-       drawPanel->CutSelected(); // 调用 DrawPanel 中的 CutSelected 方法
+        drawPanel->CutSelected(); // 调用 DrawPanel 中的 CutSelected 方法
     }
 
     void OnSubPanelPaint(wxPaintEvent& event) {
@@ -569,7 +589,7 @@ public:
         //获取connections
         std::vector<std::pair<wxPoint, wxPoint>> connections = drawPanel->connections;
 
-	    std::stack<Component> stack1;
+        std::stack<Component> stack1;
         std::stack<Component> stack2;
 
         //从灯泡出发，将遇到的所有元件对应的符号表达式压入栈中,直到无法找到连接对象或者连接对象为电池
@@ -579,19 +599,19 @@ public:
                 break;
             }
         }
-		if (stack1.empty()) {
-			wxLogMessage("No bulb found");
-			return;
-		}
+        if (stack1.empty()) {
+            wxLogMessage("No bulb found");
+            return;
+        }
 
         Component noneComponent(Component::Tool::NONE, wxPoint(-1, -1));
         while (!stack1.empty()) {
-			Component current = stack1.top();
-			stack1.pop();
+            Component current = stack1.top();
+            stack1.pop();
 
-			stack2.push(current);
+            stack2.push(current);
 
-			/*对current元件连接的对象进行识别：
+            /*对current元件连接的对象进行识别：
             如果不是非门，代表有两个输入引脚，需要先将连接的元件压入栈中，再找到两个输入引脚对应的元件
             如果是非门，代表有一个输入引脚，需要先将连接的元件压入栈中，再找到一个对应的元件就行
             如果是电源，就压入电源元件，如果没有连接对象，就创建一个空的Component，tool是NONE*/
@@ -610,8 +630,8 @@ public:
                                 else {
                                     stack1.push(noneComponent);
                                 }
-							}
-                            else if(component.tool != Component::Tool::BULB && component.tool != Component::Tool::BATTERY){
+                            }
+                            else if (component.tool != Component::Tool::BULB && component.tool != Component::Tool::BATTERY) {
                                 if (component.pins[1].first + component.position == nextPosition) {
                                     stack1.push(component);
                                 }
@@ -620,10 +640,11 @@ public:
                                 }
                             }
                         }
-					}
-					else { stack1.push(noneComponent); 
                     }
-					if (connection.second == current.pins[1].first + current.position || connection.first == current.pins[1].first + current.position) {
+                    else {
+                        stack1.push(noneComponent);
+                    }
+                    if (connection.second == current.pins[1].first + current.position || connection.first == current.pins[1].first + current.position) {
                         wxPoint nextPosition = (connection.second == current.pins[1].first + current.position) ? connection.first : connection.second;
                         for (auto& component : components) {
                             if (component.tool != Component::Tool::NOT_GATE && component.tool != Component::Tool::BULB && component.tool != Component::Tool::BATTERY) {
@@ -634,7 +655,7 @@ public:
                                     stack1.push(noneComponent);
                                 }
                             }
-                            else if(component.tool != Component::Tool::BULB && component.tool != Component::Tool::BATTERY){
+                            else if (component.tool != Component::Tool::BULB && component.tool != Component::Tool::BATTERY) {
                                 if (component.pins[1].first + component.position == nextPosition) {
                                     stack1.push(component);
                                 }
@@ -643,16 +664,17 @@ public:
                                 }
                             }
                         }
-					}
-                    else { stack1.push(noneComponent); 
+                    }
+                    else {
+                        stack1.push(noneComponent);
                     }
                 }
             }
-            else if (current.tool == Component::Tool::NOT_GATE || current.tool == Component::Tool::BULB){
+            else if (current.tool == Component::Tool::NOT_GATE || current.tool == Component::Tool::BULB) {
                 // 是灯泡或not，有一个输入引脚
                 for (auto& connection : connections) {
                     if (connection.second == current.pins[0].first + current.position || connection.first == current.pins[0].first + current.position) {
-						wxPoint nextPosition = (connection.second == current.pins[0].first + current.position) ? connection.first : connection.second;
+                        wxPoint nextPosition = (connection.second == current.pins[0].first + current.position) ? connection.first : connection.second;
                         for (auto& component : components) {
                             if (component.tool != Component::Tool::NOT_GATE && component.tool != Component::Tool::BULB && component.tool != Component::Tool::BATTERY) {
                                 if (component.pins[2].first + component.position == nextPosition) {
@@ -662,31 +684,32 @@ public:
                                     stack1.push(noneComponent);
                                 }
                             }
-                            else if (component.tool != Component::Tool::BULB && component.tool != Component::Tool::BATTERY){
+                            else if (component.tool != Component::Tool::BULB && component.tool != Component::Tool::BATTERY) {
                                 if (component.pins[1].first + component.position == nextPosition) {
                                     stack1.push(component);
                                 }
-								else {
-									stack1.push(noneComponent);
-								}
+                                else {
+                                    stack1.push(noneComponent);
+                                }
                             }
                         }
                     }
-                    else { stack1.push(noneComponent); 
+                    else {
+                        stack1.push(noneComponent);
                     }
                 }
             }
         }
 
-		// 从栈中弹出元件，计算输出
-        bool output[sizeof(stack2)] = {false};
+        // 从栈中弹出元件，计算输出
+        bool output[sizeof(stack2)] = { false };
         int i = 0;
-		bool j = false;
-		bool k = false;
-		bool m = false;
-		bool n = false;
-		bool o = false;
-		bool p = false;
+        bool j = false;
+        bool k = false;
+        bool m = false;
+        bool n = false;
+        bool o = false;
+        bool p = false;
 
 
         while (!stack2.empty()) {
@@ -694,60 +717,60 @@ public:
             stack2.pop();
 
             switch (current.tool) {
-                case Component::Tool::NOT_GATE:
-                    // 非门的输出是输入的反
-                    output[i] = !output[i];
-                    break;
-                case Component::Tool::BATTERY:
-                    // 电池的输出是恒定的
-                    output[i++] = true;
-                    break;
-                case Component::Tool::OR_GATE:
-					// 或门的输出是输入的或
-					k = output[i] || output[i-1];
-                    output[i - 1] = k;
-                    i--;
-                    break;
-                case Component::Tool::AND_GATE:
-					// 与门de输出是输入的与
-					j = output[i] && output[i - 1];
-					output[i - 1] = j;
-					i--;
-					break;
-			    case Component::Tool::NAND_GATE:
-					// 与非门的输出是输入的与非
-					m = !(output[i] && output[i - 1]);
-					output[i - 1] = m;
-					i--;
-				    break;
-			    case Component::Tool::NOR_GATE:
-					// 或非门的输出是输入的或非
-					n = !(output[i] || output[i - 1]);
-					output[i - 1] = n;
-					i--;
-				    break;
-			    case Component::Tool::XOR_GATE:
-					// 异或门的输出是输入的异或
-					o = output[i] ^ output[i - 1];
-					output[i - 1] = o;
-					i--;
-				    break;
-			    case Component::Tool::XNOR_GATE:
-					// 与非门的输出是输入的与非
-					p = !(output[i] ^ output[i - 1]);
-					output[i - 1] = p;
-					i--;
-				    break;
-                case Component::Tool::NONE:
-                    output[i++] = false;
-                    break;
+            case Component::Tool::NOT_GATE:
+                // 非门的输出是输入的反
+                output[i] = !output[i];
+                break;
+            case Component::Tool::BATTERY:
+                // 电池的输出是恒定的
+                output[i++] = true;
+                break;
+            case Component::Tool::OR_GATE:
+                // 或门的输出是输入的或
+                k = output[i] || output[i - 1];
+                output[i - 1] = k;
+                i--;
+                break;
+            case Component::Tool::AND_GATE:
+                // 与门de输出是输入的与
+                j = output[i] && output[i - 1];
+                output[i - 1] = j;
+                i--;
+                break;
+            case Component::Tool::NAND_GATE:
+                // 与非门的输出是输入的与非
+                m = !(output[i] && output[i - 1]);
+                output[i - 1] = m;
+                i--;
+                break;
+            case Component::Tool::NOR_GATE:
+                // 或非门的输出是输入的或非
+                n = !(output[i] || output[i - 1]);
+                output[i - 1] = n;
+                i--;
+                break;
+            case Component::Tool::XOR_GATE:
+                // 异或门的输出是输入的异或
+                o = output[i] ^ output[i - 1];
+                output[i - 1] = o;
+                i--;
+                break;
+            case Component::Tool::XNOR_GATE:
+                // 与非门的输出是输入的与非
+                p = !(output[i] ^ output[i - 1]);
+                output[i - 1] = p;
+                i--;
+                break;
+            case Component::Tool::NONE:
+                output[i++] = false;
+                break;
             }
 
-			if (current.tool == Component::Tool::BULB) {
-				wxLogMessage("The bulb is %s", output[i] ? "ON" : "OFF");
-			}
+            if (current.tool == Component::Tool::BULB) {
+                wxLogMessage("The bulb is %s", output[i] ? "ON" : "OFF");
+            }
         }
-            
+
     }
 
 
@@ -794,7 +817,7 @@ public:
     void OnTreeItemSelected(wxTreeEvent& event) {
         wxTreeItemId itemId = event.GetItem();
         wxString nodeName = treeCtrl->GetItemText(itemId);
-       
+
 
         // 根据所选节点名称更新文本框内容
         if (nodeName == "Guide 1") {
@@ -869,6 +892,17 @@ public:
             drawPanel->connecting = true;
         default:
             break;
+        }
+    }
+    //元器件移动
+    void OnCircuitUp(wxCommandEvent& event) {
+        if (drawPanel) {
+            drawPanel->CircuitUp();
+        }
+    }
+    void OnCircuitDown(wxCommandEvent& event) {
+        if (drawPanel) {
+            drawPanel->CircuitDown();
         }
     }
 };

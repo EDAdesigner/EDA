@@ -27,6 +27,8 @@ public:
 //布尔值，表示当前值
     bool value = false;
     bool isSelected = false;  // 新增：是否被选中
+    // 声明 DrawPanel 为友元类
+    friend class DrawPanel;
 
     Component(Tool t, const wxPoint& pos)
         : tool(t), position(pos) {}
@@ -222,6 +224,13 @@ private:
             }
             dc.DrawLine(position.x + pin.first.x, position.y + pin.first.y,
                 position.x + pin.second.x, position.y + pin.second.y);
+        }
+    }
+    // 更新引脚的绝对位置
+    void UpdatePinPositions() {
+        for (auto& pin : pins) {
+            pin.first = position + wxPoint(pin.first.x - position.x, pin.first.y - position.y);
+            pin.second = position + wxPoint(pin.second.x - position.x, pin.second.y - position.y);
         }
     }
 
